@@ -1,6 +1,5 @@
 module.exports = [
 	'libbase.so',
-	'libbinder.so',
 	'libc++.so',
 	'libc.so',
 	'libcutils.so',
