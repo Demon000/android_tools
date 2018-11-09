@@ -3,8 +3,6 @@
 const workerpool = require('workerpool');
 const path = require('path');
 
-const DEBUG = true;
-
 const relativeFilesDirectory = process.argv[2];
 const relativeFileStart = process.argv[3];
 
