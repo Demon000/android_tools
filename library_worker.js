@@ -3,6 +3,8 @@ const exec = require('child_process').exec;
 
 const ignoredLibraries = require('./ignored_libraries');
 
+const DEBUG = false;
+
 function execute(command, outputFn) {
 	return new Promise(function(resolve, reject) {
 		exec(command, {
@@ -64,7 +66,9 @@ async function getPathsForLibrary(library, filesDirectory) {
 
 	if (output == '') {
 		paths = [];
-		console.log(`missing: ${library}`)
+		if (DEBUG) {
+			console.log(`missing: ${library}`);
+		}
 	} else {
 		paths = output.trim().split('\n')
 	}
