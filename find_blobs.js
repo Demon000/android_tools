@@ -19,7 +19,7 @@ function addNeededLibraries(filePath, filesDirectory) {
 		let newPaths = 0;
 
 		paths.forEach(function(filePath) {
-			if (foundPaths.includes(filePath)) {
+			if (foundPaths.includes(filePath) || filePath == fileStart) {
 				return;
 			}
 
