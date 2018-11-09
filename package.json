@@ -1,0 +1,8 @@
+{
+  "name": "android_tools",
+  "author": "Demon000",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "workerpool": "^2.3.3"
+  }
+}
