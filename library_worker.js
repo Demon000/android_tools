@@ -1,32 +1,9 @@
 const workerpool = require('workerpool');
-const exec = require('child_process').exec;
+const execute = require('./utils').execute;
 
-const ignoredLibraries = require('./ignored_libraries');
+const isImportantLibrary = require('./ignored_libraries').isImportantLibrary;
 
 const DEBUG = false;
-
-function execute(command, outputFn) {
-	return new Promise(function(resolve, reject) {
-		exec(command, {
-			maxBuffer: 1024 * 1024 * 512,
-		}, function(error, stdout, stderr) {
-			if (error) {
-				console.error(error);
-				stdout = '';
-			}
-
-			if (stderr) {
-				console.log(stderr);
-			}
-			
-			resolve(stdout);
-		});
-	});
-}
-
-function isImportantLibrary(library) {
-	return !ignoredLibraries.includes(library);
-}
 
 async function getLibraryStrings(path) {
 	const STRINGS_COMMAND = `strings "${path}" | grep -F ".so"`;

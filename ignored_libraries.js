@@ -1,4 +1,4 @@
-module.exports = [
+const ignoredLibraries = [
 	'libbase.so',
 	'libc++.so',
 	'libc.so',
@@ -16,3 +16,8 @@ module.exports = [
 	'libutilscallstack.so',
 	'libxml2.so',
 ];
+
+module.exports = {
+	isIgnoredLibrary: (library) => ignoredLibraries.includes(library),
+	isImportantLibrary: (library) => !ignoredLibraries.includes(library),
+};
