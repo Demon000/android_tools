@@ -28,7 +28,7 @@ async function filterFilesWithArch(paths, targetArch) {
 async function getNeededLibraries(path, filesDirectory) {
 	const fileArch = await utils.getFileArch(path);
 
-	const libraries = await utils.getLibraryStrings(path);
+	const libraries = await utils.getReferencedLibraries(path);
 
 	const allPaths = await getPathsForLibraries(libraries, filesDirectory);
 	const paths = await filterFilesWithArch(allPaths, fileArch);

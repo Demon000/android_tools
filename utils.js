@@ -23,7 +23,7 @@ function execute(command, outputFn) {
 	});
 }
 
-async function getLibraryStrings(path) {
+async function getReferencedLibraries(path) {
 	const STRINGS_COMMAND = `strings "${path}" | grep -F ".so"`;
 
 	const output = await execute(STRINGS_COMMAND);
@@ -73,7 +73,7 @@ async function getFileArch(path, archFn) {
 
 module.exports = {
 	execute,
-	getLibraryStrings,
+	getReferencedLibraries,
 	toLinuxWildcardLibrary,
 	getPathsForLibrary,
 	getFileArch,
