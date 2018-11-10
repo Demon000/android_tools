@@ -2,7 +2,7 @@ const DEBUG = false;
 
 const exec = require('child_process').exec;
 
-const isImportantLibrary = require('./ignored_libraries').isImportantLibrary;
+const isValidLibrary = require('./ignored_libraries').isValidLibrary;
 
 function execute(command, outputFn) {
 	return new Promise(function(resolve, reject) {
@@ -35,7 +35,7 @@ async function getReferencedLibraries(path) {
 		libraries = output.trim().split('\n')
 	}
 
-	return libraries.filter(isImportantLibrary);
+	return libraries.filter(isValidLibrary);
 }
 
 function toLinuxWildcardLibrary(library) {

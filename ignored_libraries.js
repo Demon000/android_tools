@@ -17,7 +17,18 @@ const ignoredLibraries = [
 	'libxml2.so',
 ];
 
+function isValidLibrary(library) {
+	if (library.contains(' ')) {
+		return false;
+	}
+
+	if (ignoredLibraries.includes(library)) {
+		return false;
+	}
+
+	return true;
+}
+
 module.exports = {
-	isIgnoredLibrary: (library) => ignoredLibraries.includes(library),
-	isImportantLibrary: (library) => !ignoredLibraries.includes(library),
+	isValidLibrary,
 };
