@@ -18,7 +18,11 @@ const ignoredLibraries = [
 ];
 
 function isValidLibrary(library) {
-	if (library.contains(' ')) {
+	if (library.includes(' ')) {
+		return false;
+	}
+
+	if (library.includes('/')) {
 		return false;
 	}
 
