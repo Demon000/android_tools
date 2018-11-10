@@ -47,7 +47,7 @@ async function getPathsForLibrary(library, filesDirectory) {
 	const FIND_COMMAND = `find ${filesDirectory} -name "${wildcard}"`;
 
 	const output = await execute(FIND_COMMAND);
-	let paths = output.trim().split('\n');
+	let paths;
 
 	if (output == '') {
 		paths = [];
