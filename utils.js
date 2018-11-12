@@ -63,10 +63,10 @@ async function getPathsForLibrary(library, filesDirectory) {
 
 async function getFileArch(path, archFn) {
 	const FILE_COMMAND = `file ${path}`;
-	const ARCH_REGEX = /ELF \d{2}-bit/;
+	const ARCH_REGEX = /(ELF )(\d{2})(-bit)/;
 
 	const output = await execute(FILE_COMMAND);
-	const arch = output.match(ARCH_REGEX)[0];
+	const arch = output.match(ARCH_REGEX)[2];
 
 	return arch;
 }
