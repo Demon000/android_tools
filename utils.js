@@ -24,7 +24,7 @@ function execute(command, outputFn) {
 }
 
 async function getReferencedLibraries(path) {
-	const STRINGS_COMMAND = `strings "${path}" | grep "\.so$"`;
+	const STRINGS_COMMAND = `strings "${path}" | grep "\\.so$"`;
 
 	const output = await execute(STRINGS_COMMAND);
 	let libraries;
