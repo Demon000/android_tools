@@ -61,8 +61,14 @@ async function getPathsForLibrary(library, filesDirectory) {
 	return paths;
 }
 
-async function getFileArch(path, archFn) {
-	const FILE_COMMAND = `file ${path}`;
+async function getFileArch(filepath, archFn) {
+	if (filepath.includes('/lib/')) {
+		return "32";
+	} else if (filepath.includes('/lib64/')) {
+		return "64";
+	}
+
+	const FILE_COMMAND = `file ${filepath}`;
 	const ARCH_REGEX = /(ELF )(\d{2})(-bit)/;
 
 	const output = await execute(FILE_COMMAND);
