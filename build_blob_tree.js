@@ -143,6 +143,7 @@ function isValidBlob(filepath) {
 async function printBlobs(dirpath) {
 	const filelist = await findAllFiles(dirpath);
 	const blobs = {};
+	const usage = {};
 
 	for (const filepath of filelist) {
 		if (!isValidBlob(filepath)) {
@@ -163,13 +164,30 @@ async function printBlobs(dirpath) {
 		const libraries = await getReferencedLibraries(filepath)
 		const dependencies = libraries.filter(library => library != name);
 
+		dependencies.forEach(function(library) {
+			if (usage[library]) {
+				usage[library]++;
+			} else {
+				usage[library] = 1;
+			}
+		});
+
 		blobs[name] = {
 			dependencies,
 			arches: [arch],
 		};
 	}
 
-	console.log(JSON.stringify(blobs, null, 4));
+	const usageList = [];
+	for (const library in usage) {
+		usageList.push([library, usage[library]]);
+	}
+
+	usageList.sort(function(a, b) {
+		return b[1] - a[1];
+	})
+
+	console.log(JSON.stringify(usageList, null, 4));
 }
 
 const dirpath = path.resolve(process.argv[2]);
