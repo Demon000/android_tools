@@ -35,6 +35,7 @@ const ignoredLibraries = [
 	'liblog.so',
 	'libm.so',
 	'libutils.so',
+	'libz.so',
 ];
 
 function isValidLibrary(library) {
