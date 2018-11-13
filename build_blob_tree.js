@@ -67,7 +67,8 @@ function Blob(filepath) {
 	this.name = getBlobName(filepath);
 	this.arch = getBlobArch(filepath);
 	this.getDependencies = async function() {
-		this.dependencies = await getReferencedLibraries(filepath);
+		const dependencies = await getReferencedLibraries(filepath);
+		this.dependencies = dependencies.filter(dep => dep != this.name);
 		return this.dependencies;
 	};
 
