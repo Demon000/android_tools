@@ -169,7 +169,28 @@ async function printBlobs(dirpath) {
 		};
 	}
 
-	console.log(JSON.stringify(blobs, null, 4));
+	const tree = {};
+	for (const name in blobs) {
+		const blob = blobs[name];
+		if (!blob) {
+			continue;
+		}
+
+		for (const dependencyName of blob.dependencies) {
+			const dependencyBlob = blobs[dependencyName];
+			if (!dependencyBlob) {
+				continue;
+			}
+
+			blobs[dependencyName] = undefined;
+
+			blob.dependencies.push(...dependencyBlob.dependencies);
+		}
+
+		tree[name] = blob;
+	}
+
+	console.log(JSON.stringify(tree, null, 4));
 }
 
 const dirpath = path.resolve(process.argv[2]);
