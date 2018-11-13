@@ -71,20 +71,6 @@ async function getBlobArch(filepath) {
 	}
 }
 
-async function createBlob(filepath) {
-	const name = getBlobName(filepath);
-	const arch = await getBlobArch(filepath);
-
-	const allDependencies = await getReferencedLibraries(filepath);
-	const dependencies = allDependencies.filter(dep => dep != name);
-
-	return {
-		name,
-		dependencies,
-		arches: [arch],
-	};
-}
-
 async function findAllFiles(dirpath) {
 	const FIND_COMMAND = `find ${dirpath} -type f`;
 
@@ -163,17 +149,24 @@ async function printBlobs(dirpath) {
 			continue;
 		}
 
-		const blob = await createBlob(filepath);
-		if (blob.arches.includes('unknown')) {
+		const name = getBlobName(filepath);
+		const arch = await getBlobArch(filepath);
+		if (arch == 'unknown') {
 			continue;
 		}
 
-		if (blobs[blob.name]) {
-			blobs[blob.name].arches.push(...blob.arches)
-		} else {
-			blobs[blob.name] = blob;
-			delete blob.name;
+		if (blobs[name]) {
+			blobs[name].arches.push(arch);
+			continue;
 		}
+
+		const allDependencies = await getReferencedLibraries(filepath);
+		const dependencies = allDependencies.filter(dep => dep != name);
+
+		blobs[name] = {
+			dependencies,
+			arches: [arch],
+		};
 	}
 
 	console.log(JSON.stringify(blobs, null, 4));
