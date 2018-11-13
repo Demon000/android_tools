@@ -138,7 +138,6 @@ const invalidExtensions = [
 	'.prog',
 	'.prop',
 	'.qcom',
-	'.qti',
 	'.qwsp',
 	'.rc',
 	'.sh',
