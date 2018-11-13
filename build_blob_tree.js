@@ -3,20 +3,6 @@
 const path = require('path');
 const exec = require('child_process').exec;
 
-function getBlobName(filepath) {
-	return path.basename(filepath);
-}
-
-function getBlobArch(filepath) {
-	if (filepath.includes('/lib/')) {
-		return '32';
-	} else if (filepath.includes('/lib64/')) {
-		return '64';
-	}
-
-	return 'unknown';
-}
-
 function execute(command, outputFn) {
 	return new Promise(function(resolve, reject) {
 		exec(command, {
@@ -63,21 +49,39 @@ async function getReferencedLibraries(path) {
 	return libraries.filter(isValidLibrary);
 }
 
-function Blob(filepath) {
-	this.name = getBlobName(filepath);
-	this.arch = getBlobArch(filepath);
-	this.getDependencies = async function() {
-		const dependencies = await getReferencedLibraries(filepath);
-		this.dependencies = dependencies.filter(dep => dep != this.name);
-		return this.dependencies;
-	};
+function getBlobName(filepath) {
+	return path.basename(filepath);
+}
 
-	this.getJSON = function() {
-		return {
-			name: this.name,
-			arch: this.arch,
-			dependencies: this.dependencies,
-		};
+async function getBlobArch(filepath) {
+	if (filepath.includes('/lib/')) {
+		return '32';
+	} else if (filepath.includes('/lib64/')) {
+		return '64';
+	}
+
+	const FILE_COMMAND = `file ${filepath}`;
+	const ARCH_REGEX = /(ELF )(\d{2})(-bit)/;
+	const output = await execute(FILE_COMMAND);
+	const matches = output.match(ARCH_REGEX);
+	if (matches) {
+		return matches[2];
+	} else {
+		return 'unknown';
+	}
+}
+
+async function createBlob(filepath) {
+	const name = getBlobName(filepath);
+	const arch = await getBlobArch(filepath);
+
+	const allDependencies = await getReferencedLibraries(filepath);
+	const dependencies = allDependencies.filter(dep => dep != name);
+
+	return {
+		name,
+		dependencies,
+		arches: [arch],
 	};
 }
 
@@ -154,24 +158,24 @@ function isValidBlob(filepath) {
 
 async function printBlobs(dirpath) {
 	const filelist = await findAllFiles(dirpath);
-	const blobs = [];
+	const blobs = {};
 
 	for (const filepath of filelist) {
 		if (!isValidBlob(filepath)) {
 			continue;
 		}
 
-		const blob = new Blob(filepath);
-		const dependencies = await blob.getDependencies();
-		blobs.push(blob);
+		const blob = await createBlob(filepath);
+		if (!blobs[blob.name]) {
+			blobs[blob.name] = blob;
+		} else {
+			blobs[blob.name].arches.push(...blob.arches)
+		}
+		
+		delete blob.name;
 	}
 
-	const data = [];
-	for (const blob of blobs) {
-		data.push(blob.getJSON());
-	}
-
-	console.log(JSON.stringify(data, null, 4));
+	console.log(JSON.stringify(blobs, null, 4));
 }
 
 const dirpath = path.resolve(process.argv[2]);
