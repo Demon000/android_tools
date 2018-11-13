@@ -164,13 +164,16 @@ async function printBlobs(dirpath) {
 		}
 
 		const blob = await createBlob(filepath);
-		if (!blobs[blob.name]) {
-			blobs[blob.name] = blob;
-		} else {
-			blobs[blob.name].arches.push(...blob.arches)
+		if (blob.arches.includes('unknown')) {
+			continue;
 		}
-		
-		delete blob.name;
+
+		if (blobs[blob.name]) {
+			blobs[blob.name].arches.push(...blob.arches)
+		} else {
+			blobs[blob.name] = blob;
+			delete blob.name;
+		}
 	}
 
 	console.log(JSON.stringify(blobs, null, 4));
