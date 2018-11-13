@@ -149,19 +149,19 @@ async function printBlobs(dirpath) {
 			continue;
 		}
 
-		const name = getBlobName(filepath);
 		const arch = await getBlobArch(filepath);
 		if (arch == 'unknown') {
 			continue;
 		}
 
+		const name = getBlobName(filepath);
 		if (blobs[name]) {
 			blobs[name].arches.push(arch);
 			continue;
 		}
 
-		const allDependencies = await getReferencedLibraries(filepath);
-		const dependencies = allDependencies.filter(dep => dep != name);
+		const libraries = await getReferencedLibraries(filepath)
+		const dependencies = libraries.filter(library => library != name);
 
 		blobs[name] = {
 			dependencies,
