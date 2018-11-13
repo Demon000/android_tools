@@ -22,10 +22,29 @@ function execute(command, outputFn) {
 	});
 }
 
+const ignoredLibraries = [
+	'libbase.so',
+	'libc++.so',
+	'libc.so',
+	'libcutils.so',
+	'libdl.so',
+	'libhardware.so',
+	'libhidlbase.so',
+	'libhidltransport.so',
+	'libhwbinder.so',
+	'liblog.so',
+	'libm.so',
+	'libutils.so',
+];
+
 function isValidLibrary(library) {
 	const unmatched = [' ', '/', '<', '>'];
 
 	if (!library.endsWith('.so')) {
+		return false;
+	}
+
+	if (ignoredLibraries.includes(library)) {
 		return false;
 	}
 
