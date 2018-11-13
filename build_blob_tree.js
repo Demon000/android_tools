@@ -163,9 +163,15 @@ async function printBlobs(dirpath) {
 
 		const blob = new Blob(filepath);
 		const dependencies = await blob.getDependencies();
-		console.log(JSON.stringify(blob.getJSON(), null, 4));
 		blobs.push(blob);
 	}
+
+	const data = [];
+	for (const blob of blobs) {
+		data.push(blob.getJSON());
+	}
+
+	console.log(JSON.stringify(data, null, 4));
 }
 
 const dirpath = path.resolve(process.argv[2]);
