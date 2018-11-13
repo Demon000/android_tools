@@ -29,6 +29,7 @@ const ignoredLibraries = [
 	'libcutils.so',
 	'libdl.so',
 	'libhardware.so',
+	'libhardware_legacy.so',
 	'libhidlbase.so',
 	'libhidltransport.so',
 	'libhwbinder.so',
