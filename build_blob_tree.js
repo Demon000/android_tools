@@ -149,7 +149,6 @@ function isValidBlob(filepath) {
 		}
 	}
 
-
 	return true;
 }
 
