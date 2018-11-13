@@ -106,7 +106,6 @@ const invalidExtensions = [
 	'.bin',
 	'.cfg',
 	'.cil',
-	'.clearkey',
 	'.cng',
 	'.conf',
 	'.config',
@@ -142,7 +141,6 @@ const invalidExtensions = [
 	'.txt',
 	'.uim',
 	'.wav',
-	'.widevine',
 	'.xml',
 ];
 
