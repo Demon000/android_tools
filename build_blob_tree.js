@@ -74,13 +74,16 @@ function getBlobName(filepath) {
 	return path.basename(filepath);
 }
 
-async function getBlobArch(filepath) {
-	if (filepath.includes('/lib/')) {
-		return '32';
-	} else if (filepath.includes('/lib64/')) {
-		return '64';
-	}
+async function findAllFiles(dirpath) {
+	const FIND_COMMAND = `find ${dirpath} -type f`;
 
+	const output = await execute(FIND_COMMAND);
+	const files = output.trim().split('\n');
+
+	return files;
+}
+
+async function getBlobArch(filepath) {
 	const FILE_COMMAND = `file ${filepath}`;
 	const ARCH_REGEX = /(ELF )(\d{2})(-bit)/;
 	const output = await execute(FILE_COMMAND);
@@ -92,84 +95,12 @@ async function getBlobArch(filepath) {
 	}
 }
 
-async function findAllFiles(dirpath) {
-	const FIND_COMMAND = `find ${dirpath} -type f`;
-
-	const output = await execute(FIND_COMMAND);
-	const files = output.trim().split('\n');
-
-	return files;
-}
-
-const invalidExtensions = [
-	'.acdb',
-	'.alias',
-	'.apk',
-	'.b00',
-	'.b01',
-	'.b02',
-	'.b03',
-	'.b04',
-	'.bin',
-	'.cfg',
-	'.cil',
-	'.cng',
-	'.conf',
-	'.config',
-	'.dar',
-	'.dat',
-	'.db',
-	'.dep',
-	'.dict',
-	'.dlc',
-	'.elf',
-	'.ftcfg',
-	'.fw',
-	'.fw2',
-	'.gz',
-	'.ini',
-	'.json',
-	'.ko',
-	'.mdt',
-	'.pb',
-	'.pem',
-	'.png',
-	'.policy',
-	'.prog',
-	'.prop',
-	'.qcom',
-	'.qwsp',
-	'.rc',
-	'.sh',
-	'.sha256',
-	'.sql',
-	'.ttf',
-	'.txt',
-	'.uim',
-	'.wav',
-	'.xml',
-];
-
-function isValidBlob(filepath) {
-	for (const extension of invalidExtensions) {
-		if (filepath.endsWith(extension)) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
 async function printBlobs(dirpath) {
 	const filelist = await findAllFiles(dirpath);
 	const blobs = {};
 	const usage = {};
 
 	for (const filepath of filelist) {
-		if (!isValidBlob(filepath)) {
-			continue;
-		}
-
 		const arch = await getBlobArch(filepath);
 		if (arch == 'unknown') {
 			continue;
