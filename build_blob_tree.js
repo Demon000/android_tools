@@ -68,10 +68,13 @@ async function getReferencedLibraries(path) {
 	if (output == '') {
 		libraries = [];
 	} else {
-		libraries = output.trim().split('\n')
+		libraries = output.trim().split('\n').filter(isValidLibrary);
 	}
 
-	return libraries.filter(isValidLibrary);
+	return libraries.reduce(function(map, library) {
+		map[library] = true;
+		return map;
+	}, {});
 }
 
 function getBlobName(filepath) {
@@ -171,10 +174,10 @@ async function printBlobs(dirpath) {
 		}
 
 		const libraries = await getReferencedLibraries(filepath);
-		const dependencies = libraries.filter(library => library != name);
+		delete libraries[name];
 
 		blobs[name] = {
-			dependencies,
+			libraries,
 			arches: [arch],
 		};
 	}
@@ -190,17 +193,13 @@ async function printBlobs(dirpath) {
 
 			dependantBlob = blobs[dependantName];
 
-			if (!dependantBlob.dependencies.includes(dependencyName)) {
+			if (!dependantBlob.libraries[dependencyName]) {
 				continue;
 			}
 
 			isIncluded = true;
 
-			dependencyBlob.dependencies.forEach(function(dependency) {
-				if (!dependantBlob.dependencies.includes(dependency)) {
-					dependantBlob.dependencies.push(dependency);
-				}
-			});
+			Object.assign(dependantBlob.libraries, dependencyBlob.libraries);
 		}
 
 		if (isIncluded) {
