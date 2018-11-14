@@ -83,7 +83,62 @@ async function findAllFiles(dirpath) {
 	return files;
 }
 
+const invalidExtensions = [
+	'.acdb',
+	'.alias',
+	'.apk',
+	'.b00',
+	'.b01',
+	'.b02',
+	'.b03',
+	'.b04',
+	'.bin',
+	'.cfg',
+	'.cil',
+	'.cng',
+	'.conf',
+	'.config',
+	'.dar',
+	'.dat',
+	'.db',
+	'.dep',
+	'.dict',
+	'.dlc',
+	'.elf',
+	'.ftcfg',
+	'.fw',
+	'.fw2',
+	'.gz',
+	'.ini',
+	'.json',
+	'.ko',
+	'.mdt',
+	'.pb',
+	'.pem',
+	'.png',
+	'.policy',
+	'.prog',
+	'.prop',
+	'.qcom',
+	'.qwsp',
+	'.rc',
+	'.sh',
+	'.sha256',
+	'.sql',
+	'.ttf',
+	'.txt',
+	'.uim',
+	'.wav',
+	'.xml',
+];
+
 async function getBlobArch(filepath) {
+	for (const extension of invalidExtensions) {
+		if (filepath.endsWith(extension)) {
+			return 'unknown';
+		}
+	}
+
 	const FILE_COMMAND = `file ${filepath}`;
 	const ARCH_REGEX = /(ELF )(\d{2})(-bit)/;
 	const output = await execute(FILE_COMMAND);
