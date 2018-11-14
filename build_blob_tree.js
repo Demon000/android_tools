@@ -193,8 +193,8 @@ async function printBlobs(dirpath) {
 	}
 
 	const rootBlobs = [];
-	for (const library in usage) {
-		if (usage[library] != 0) {
+	for (const name in usage) {
+		if (usage[name] != 0) {
 			continue;
 		}
 
