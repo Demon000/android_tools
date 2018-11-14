@@ -157,7 +157,6 @@ async function getBlobArch(filepath) {
 async function printBlobs(dirpath) {
 	const filelist = await findAllFiles(dirpath);
 	const blobs = {};
-	const usage = {};
 
 	for (const filepath of filelist) {
 		const name = getBlobName(filepath);
@@ -171,20 +170,8 @@ async function printBlobs(dirpath) {
 			continue;
 		}
 
-		if (!usage[name]) {
-			usage[name] = 0;
-		}
-
 		const libraries = await getReferencedLibraries(filepath);
 		const dependencies = libraries.filter(library => library != name);
-
-		dependencies.forEach(function(library) {
-			if (usage[library]) {
-				usage[library]++;
-			} else {
-				usage[library] = 1;
-			}
-		});
 
 		blobs[name] = {
 			dependencies,
@@ -192,16 +179,6 @@ async function printBlobs(dirpath) {
 		};
 	}
 
-	const rootBlobs = [];
-	for (const name in usage) {
-		if (usage[name] != 0) {
-			continue;
-		}
-
-		rootBlobs.push(library);
-	}
-
-	console.log(JSON.stringify(rootBlobs, null, 4));
 }
 
 const dirpath = path.resolve(process.argv[2]);
