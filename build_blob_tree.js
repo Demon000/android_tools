@@ -179,6 +179,36 @@ async function printBlobs(dirpath) {
 		};
 	}
 
+	for (const dependencyName in blobs) {
+		const dependencyBlob = blobs[dependencyName];
+		let isIncluded = false;
+
+		for (const dependantName in blobs) {
+			if (dependencyName == dependantName) {
+				continue;
+			}
+
+			dependantBlob = blobs[dependantName];
+
+			if (!dependantBlob.dependencies.includes(dependencyName)) {
+				continue;
+			}
+
+			isIncluded = true;
+
+			dependencyBlob.dependencies.forEach(function(dependency) {
+				if (!dependantBlob.dependencies.includes(dependency)) {
+					dependantBlob.dependencies.push(dependency);
+				}
+			});
+		}
+
+		if (isIncluded) {
+			delete blobs[dependencyName];
+		}
+	}
+
+	console.log(JSON.stringify(blobs, null, 4));
 }
 
 const dirpath = path.resolve(process.argv[2]);
