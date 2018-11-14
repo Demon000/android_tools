@@ -46,13 +46,17 @@ function isValidLibrary(library) {
 		return false;
 	}
 
+	for (const ignoredLibrary of ignoredLibraries) {
+		if (library.includes(char)) {
+			return false;
+		}
+	}
+
 	if (ignoredLibraries.includes(library)) {
 		return false;
 	}
 
-	return unmatched.every(function(char) {
-		return !library.includes(char);
-	});
+	return true;
 }
 
 async function getReferencedLibraries(path) {
