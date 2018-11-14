@@ -101,14 +101,14 @@ async function printBlobs(dirpath) {
 	const usage = {};
 
 	for (const filepath of filelist) {
-		const arch = await getBlobArch(filepath);
-		if (arch == 'unknown') {
+		const name = getBlobName(filepath);
+		if (blobs[name]) {
+			blobs[name].arches = ['32', '64'];
 			continue;
 		}
 
-		const name = getBlobName(filepath);
-		if (blobs[name]) {
-			blobs[name].arches.push(arch);
+		const arch = await getBlobArch(filepath);
+		if (arch == 'unknown') {
 			continue;
 		}
 
