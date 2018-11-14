@@ -46,7 +46,7 @@ function isValidLibrary(library) {
 		return false;
 	}
 
-	for (const ignoredLibrary of ignoredLibraries) {
+	for (const char of unmatched) {
 		if (library.includes(char)) {
 			return false;
 		}
