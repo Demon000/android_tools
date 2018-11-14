@@ -3,6 +3,8 @@
 const path = require('path');
 const exec = require('child_process').exec;
 
+const isIgnoredLibrary = require('./ignored_libraries').isIgnoredLibrary;
+
 function execute(command, outputFn) {
 	return new Promise(function(resolve, reject) {
 		exec(command, {
@@ -22,23 +24,6 @@ function execute(command, outputFn) {
 	});
 }
 
-const ignoredLibraries = [
-	'libbase.so',
-	'libc++.so',
-	'libc.so',
-	'libcutils.so',
-	'libdl.so',
-	'libhardware.so',
-	'libhardware_legacy.so',
-	'libhidlbase.so',
-	'libhidltransport.so',
-	'libhwbinder.so',
-	'liblog.so',
-	'libm.so',
-	'libutils.so',
-	'libz.so',
-];
-
 function isValidLibrary(library) {
 	const unmatched = [' ', '/', '<', '>'];
 
@@ -52,7 +37,7 @@ function isValidLibrary(library) {
 		}
 	}
 
-	if (ignoredLibraries.includes(library)) {
+	if (isIgnoredLibrary(library)) {
 		return false;
 	}
 
