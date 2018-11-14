@@ -181,6 +181,10 @@ async function printBlobs(dirpath) {
 			continue;
 		}
 
+		if (!usage[name]) {
+			usage[name] = 0;
+		}
+
 		const libraries = await getReferencedLibraries(filepath)
 		const dependencies = libraries.filter(library => library != name);
 
