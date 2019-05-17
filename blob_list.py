@@ -147,6 +147,8 @@ class BlobList:
             # for library in libraries:
             #     print("ignoring: {}".format(library))
 
+            print()
+
         print(len(executable_groups))
         print(len(lib_groups))
 
