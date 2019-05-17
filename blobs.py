@@ -2,8 +2,6 @@ import os
 
 from utils import *
 
-from elftools.elf.elffile import ELFFile
-
 class Blob:
     def __init__(self, dir_path, path):
         absolute_path = os.path.join(dir_path, path)
