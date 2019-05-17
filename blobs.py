@@ -5,12 +5,10 @@ from utils import *
 class Blob:
     def __init__(self, dir_path, path):
         absolute_path = os.path.join(dir_path, path)
-        filename = os.path.basename(path)
-        name = os.path.splitext(filename)[0]
+        name = os.path.basename(path)
 
         self._absolute_path = absolute_path
         self._path = path
-        self._filename = filename
         self._name = name
 
     def get_name(self):
@@ -19,7 +17,7 @@ class Blob:
     def get_path(self):
         return self._path
 
-    def get_absolut_path(self):
+    def get_absolute_path(self):
         return self._absolute_path
 
 class ELFBlob(Blob):
@@ -47,52 +45,47 @@ class ELFGroup():
             arch = blob.get_arch()
             self._arches.append(arch)
 
-    def _find_dependencies(self, path):
-        # A list for libraries we're still looking for and another list
-        # for ELF blobs found for the libraries we were looking for
-        self.dependency_names = []
-        self.dependencies = []
-
-        # Add needed libraries found in the ELF header and dlopened
-        # libraries found by scanning the rodata section of the file
-        # to a list of libraries we're looking for
-        needed_libraries = get_needed_libraries(path)
-        dlopened_libraries = get_dlopened_libraries(path)
-        libraries = needed_libraries + dlopened_libraries
-        for library in libraries:
-            # Remove extension
-            name = library[:-3]
-
-            self.dependency_names.append(name)
-
     def get_name(self):
         return self._main_blob.get_name()
 
     def get_blobs(self):
         return self._blobs
 
-    def find_dependencies(self):
-        # Dependencies are tracked for only one of the ELF files inside
-        # the group
-        path = self._main_blob.get_absolut_path()
-        self._find_dependencies(path)
+    def get_arch_blobs(self, arches):
+        arch_blobs = []
+        for blob in self._blobs:
+            if blob.get_arch() not in arches:
+                continue
 
-    def get_unsolved_dependency_names(self):
-        return self.dependency_names[:]
+            arch_blobs.append(blob)
 
-    def get_found_elf_blobs(self):
-        all_elf_blobs = []
+        return arch_blobs
 
-        for dependency in self.dependencies:
-            elf_blobs = dependency.get_blobs()
-            for elf_blob in elf_blobs:
-                arch = elf_blob.get_arch()
-                if arch not in self._arches:
-                    continue
+    def find_used_libraries(self):
+        path = self._main_blob.get_absolute_path()
 
-                all_elf_blobs.append(elf_blob)
+        # A list for libraries we're still looking for
+        needed_libraries = get_needed_libraries(path)
+        dlopened_libraries = get_dlopened_libraries(path)
+        self.library_names = needed_libraries + dlopened_libraries
 
-        return all_elf_blobs
+        # Another list to be populated with ELF groups found for
+        # the libraries we were looking for
+        self.found_elf_blobs = []
+
+    def get_missing_libraries(self):
+        return self.library_names[:]
+
+    def get_used_blobs(self):
+        all_used_blobs = []
+
+        all_used_blobs.extend(self._blobs)
+
+        for elf_group in self.found_elf_blobs:
+            arch_blobs = elf_group.get_arch_blobs(self._arches)
+            all_used_blobs.extend(arch_blobs)
+
+        return all_used_blobs
 
     def try_solve_dependencies(self, other):
         # If the shared library given to us matches a dependency we're looking
@@ -102,13 +95,13 @@ class ELFGroup():
         # for at least all the needed arches
         # (how else would they work in stock?)
         other_name = other.get_name()
-        if other_name not in self.dependency_names:
+        if other_name not in self.library_names:
             return False
 
-        self.dependencies.append(other)
-        self.dependency_names.remove(other_name)
+        self.found_elf_blobs.append(other)
+        self.library_names.remove(other_name)
 
-        new_dependencies = other.get_unsolved_dependency_names()
-        self.dependency_names.extend(new_dependencies)
+        other_libraries = other.get_missing_libraries()
+        self.library_names.extend(other_libraries)
 
         return True

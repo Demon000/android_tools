@@ -134,18 +134,18 @@ class BlobList:
         elf_groups = executable_groups + lib_groups
 
         for elf_group in elf_groups:
-            elf_group.find_dependencies()
+            elf_group.find_used_libraries()
 
         self._flatten_elf_groups(elf_groups)
 
         for elf_group in elf_groups:
-            elf_blobs = elf_group.get_found_elf_blobs()
+            elf_blobs = elf_group.get_used_blobs()
             for elf_blob in elf_blobs:
                 print(elf_blob.get_path())
 
-            dependency_names = elf_group.get_unsolved_dependency_names()
-            for dependency_name in dependency_names:
-                print("ignoring: {}".format(dependency_name))
+            # libraries = elf_group.get_missing_libraries()
+            # for library in libraries:
+            #     print("ignoring: {}".format(library))
 
         print(len(executable_groups))
         print(len(lib_groups))
