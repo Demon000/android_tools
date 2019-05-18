@@ -1,6 +1,30 @@
-import string
+from string import printable
 
 from elftools.elf.elffile import ELFFile
+
+def get_printable_strings(binary_data, min_len=4):
+    strings = []
+
+    string = ""
+    for byte in binary_data:
+        char = chr(byte)
+
+        if char in printable:
+            string += char
+            continue
+
+        if len(string) >= min_len:
+            strings.append(string)
+
+        string = ""
+
+    return strings
+
+def get_strings(path):
+    with open(path, "rb") as file:
+        binary_data = file.read()
+
+    return get_printable_strings(binary_data)
 
 def get_arch(path):
     with open(path, "rb") as file:
@@ -22,59 +46,15 @@ def get_needed_libraries(path):
 
         return libraries
 
-def get_rodata(path):
+def get_rodata_strings(path, min_len=4):
     with open(path, "rb") as file:
         elffile = ELFFile(file)
 
         rodata_section = elffile.get_section_by_name('.rodata')
-        if not rodata_section:
-            return bytes()
+        if rodata_section:
+            binary_data = rodata_section.data()
+        else:
+            binary_data = bytes()
 
-        return rodata_section.data()
+    return get_printable_strings(binary_data)
 
-def get_rodata_strings(rodata, min_len=4):
-    strings = []
-
-    result = ""
-    for byte in rodata:
-        char = chr(byte)
-
-        # If char is printable then it can be a valid string
-        if char in string.printable:
-            result += char
-            continue
-
-        # If char is not printable then we're at the end of a string
-        # Only take into account strings larger than `min_len`
-        if len(result) >= min_len:
-            strings.append(result)
-
-        # Empty out the current string
-        result = ""
-
-    return strings
-
-def get_library_strings(strings):
-    libraries = []
-    for s in strings:
-        # Must end in `.so`
-        if not s.endswith(".so"):
-            continue
-
-        # Ignore wildcard libraries
-        if "%s" in s:
-            continue
-
-        # String with spaces must be a debug message
-        if " " in s:
-            continue
-
-        libraries.append(s)
-
-    return libraries
-
-def get_dlopened_libraries(path):
-    rodata = get_rodata(path)
-    strings = get_rodata_strings(rodata)
-    libraries = get_library_strings(strings)
-    return libraries

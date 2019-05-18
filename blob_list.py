@@ -66,6 +66,37 @@ class BlobList:
 
         return subdir_file_paths
 
+    def _extract_elf_blobs(self, all_file_paths, subdirs):
+        '''
+        Extract a list of elf blobs from the file paths that are
+        found under `subdir` from a list of file paths.
+
+        Args:
+            all_file_paths (list): A list of file paths to extract from.
+            subdirs (list): A list of subdirs to match.
+
+        Returns:
+            list: A list of all the extracted elf blobs.
+        '''
+
+        elf_blobs = []
+        nonelf_file_paths = []
+
+        name_blobs = {}
+        file_paths = self._extract_subdir_file_paths(all_file_paths, subdirs)
+        for file_path in file_paths:
+            try:
+                elf_blob = ELFBlob(self.__dir_path, file_path)
+                elf_blobs.append(elf_blob)
+            except:
+                nonelf_file_paths.append(file_path)
+
+        # Add back non-ELF files
+        for file_path in nonelf_file_paths:
+            all_file_paths.append(file_path)
+
+        return elf_blobs
+
     def _extract_elf_groups(self, all_file_paths, subdirs):
         '''
         Extract a list of elf groups from the file paths that are
@@ -101,56 +132,49 @@ class BlobList:
 
         return elf_groups
 
-    def _flatten_elf_groups(self, elf_groups):
+    def _adopt_blobs(self, target_blobs, source_blobs):
         '''
-        Flatten a list of elf blobs.
+        Adopt needed blobs from a list of blobs.
 
         Args:
-            elf_groups (list): The list of elf groups to flatten.
+            target_blobs (list): The list of blobs to adopt into.
+            source_blobs (list): The list of blobs to adopt from.
         '''
         i = 0
         while True:
-            if i == len(elf_groups):
+            if i == len(source_blobs):
                 break
 
             solved_any = False
-            source_elf = elf_groups[i]
-            for target_elf in elf_groups:
-                solved_one = target_elf.try_solve_dependencies(source_elf)
+            source_blob = source_blobs[i]
+            for target_blob in target_blobs:
+                solved_one = target_blob.try_needed_blob(source_blob)
                 if solved_one:
                     solved_any = True
 
             if solved_any:
-                elf_groups.pop(i)
+                source_blobs.pop(i)
             else:
                 i += 1
 
     def build_blob_trees(self):
         all_file_paths = self._get_dir_file_paths(self.__dir_path)
 
-        executable_groups = self._extract_elf_groups(all_file_paths, ["bin/"])
         lib_groups = self._extract_elf_groups(all_file_paths, ["lib/", "lib64/"])
+        executable_blobs = self._extract_elf_blobs(all_file_paths, ["bin/"])
 
-        elf_groups = executable_groups + lib_groups
+        for blob in lib_groups + executable_blobs:
+            blob.find_needed_blobs()
 
-        for elf_group in elf_groups:
-            elf_group.find_used_libraries()
+        self._adopt_blobs(lib_groups, lib_groups)
+        self._adopt_blobs(executable_blobs, lib_groups)
 
-        self._flatten_elf_groups(elf_groups)
-
-        for elf_group in elf_groups:
-            elf_blobs = elf_group.get_used_blobs()
-            for elf_blob in elf_blobs:
-                print(elf_blob.get_path())
-
-            # libraries = elf_group.get_missing_libraries()
-            # for library in libraries:
-            #     print("ignoring: {}".format(library))
-
+        for blob in lib_groups + executable_blobs:
+            print(blob.get_name())
+            # found_blobs = blob.get_found_blobs()
+            # for found_blob in found_blobs:
+            #     print(found_blob.get_path())
             print()
-
-        print(len(executable_groups))
-        print(len(lib_groups))
 
 if len(sys.argv) < 2:
     print("Invalid number of arguments.")

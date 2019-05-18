@@ -2,7 +2,59 @@ import os
 
 from utils import *
 
-class Blob:
+class CommonBlobInterface:
+    def get_needed_blobs(self):
+        return self._needed_blobs
+
+    def get_strings(self):
+        return self._strings
+
+    def _is_needed_blob(self, other):
+        name = other.get_name()
+        if name in self._needed_blobs:
+            return True
+
+        for string in self._strings:
+            if name in string:
+                return True
+
+        return False
+
+    def _adopt_blobs(self, other):
+        # ELF groups aren't real blobs so don't add them to
+        # the list of blobs, but add the blobs they contain.
+        if isinstance(other, ELFGroup):
+            blobs = other.get_initial_blobs()
+            self._blobs.extend(blobs)
+        elif isinstance(other, ELFBlob) or isinstance(other, Blob):
+            self._blobs.append(other)
+
+        needed_blobs = other.get_needed_blobs()
+        found_blobs = other.get_found_blobs()
+        strings = other.get_strings()
+
+        self._needed_blobs.extend(needed_blobs)
+        self._blobs.extend(found_blobs)
+        self._strings.extend(strings)
+
+    def try_needed_blob(self, other):
+        if self == other:
+            return False
+
+        if other in self._blobs:
+            return False
+
+        if not self._is_needed_blob(other):
+            return False
+
+        self._adopt_blobs(other)
+
+        return True
+
+    def get_found_blobs(self):
+        return self._blobs[:]
+
+class Blob(CommonBlobInterface):
     def __init__(self, dir_path, path):
         absolute_path = os.path.join(dir_path, path)
         name = os.path.basename(path)
@@ -10,6 +62,7 @@ class Blob:
         self._absolute_path = absolute_path
         self._path = path
         self._name = name
+        self._blobs = []
 
     def get_name(self):
         return self._name
@@ -19,6 +72,10 @@ class Blob:
 
     def get_absolute_path(self):
         return self._absolute_path
+
+    def find_needed_blobs(self):
+        self._needed_blobs = []
+        self._strings = get_strings(self._absolute_path)
 
 class ELFBlob(Blob):
     def __init__(self, dir_path, path):
@@ -32,76 +89,28 @@ class ELFBlob(Blob):
     def get_arch(self):
         return self._arch
 
-class ELFGroup():
+    def set_needed_blobs(self, needed_blobs):
+        self._needed_blobs = needed_blobs
+
+    def set_strings(self, strings):
+        self._strings = strings
+
+    def find_needed_blobs(self):
+        self._needed_blobs = get_needed_libraries(self._absolute_path)
+        self._strings = get_rodata_strings(self._absolute_path)
+
+class ELFGroup(CommonBlobInterface):
     def __init__(self, dir_path, blobs):
-        self._blobs = blobs
-        self._main_blob = blobs[-1]
-
-        self._find_arches()
-
-    def _find_arches(self):
-        self._arches = []
-        for blob in self._blobs:
-            arch = blob.get_arch()
-            self._arches.append(arch)
+        self._blobs = blobs[:]
+        self._initial_blobs = blobs[:]
 
     def get_name(self):
-        return self._main_blob.get_name()
+        return self._initial_blobs[0].get_name()
 
-    def get_blobs(self):
-        return self._blobs
+    def get_initial_blobs(self):
+        return self._initial_blobs[:]
 
-    def get_arch_blobs(self, arches):
-        arch_blobs = []
-        for blob in self._blobs:
-            if blob.get_arch() not in arches:
-                continue
-
-            arch_blobs.append(blob)
-
-        return arch_blobs
-
-    def find_used_libraries(self):
-        path = self._main_blob.get_absolute_path()
-
-        # A list for libraries we're still looking for
-        needed_libraries = get_needed_libraries(path)
-        dlopened_libraries = get_dlopened_libraries(path)
-        self.library_names = needed_libraries + dlopened_libraries
-
-        # Another list to be populated with ELF groups found for
-        # the libraries we were looking for
-        self.found_elf_blobs = []
-
-    def get_missing_libraries(self):
-        return self.library_names[:]
-
-    def get_used_blobs(self):
-        all_used_blobs = []
-
-        all_used_blobs.extend(self._blobs)
-
-        for elf_group in self.found_elf_blobs:
-            arch_blobs = elf_group.get_arch_blobs(self._arches)
-            all_used_blobs.extend(arch_blobs)
-
-        return all_used_blobs
-
-    def try_solve_dependencies(self, other):
-        # If the shared library given to us matches a dependency we're looking
-        # for, add it to the solved dependencies list and add its unsolved
-        # dependencies to our list of unsolved dependencies
-        # Arch is not checked here because we expect libraries to be available
-        # for at least all the needed arches
-        # (how else would they work in stock?)
-        other_name = other.get_name()
-        if other_name not in self.library_names:
-            return False
-
-        self.found_elf_blobs.append(other)
-        self.library_names.remove(other_name)
-
-        other_libraries = other.get_missing_libraries()
-        self.library_names.extend(other_libraries)
-
-        return True
+    def find_needed_blobs(self):
+        path = self._initial_blobs[0].get_absolute_path()
+        self._needed_blobs = get_needed_libraries(path)
+        self._strings = get_rodata_strings(path)
