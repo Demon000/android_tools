@@ -49,15 +49,16 @@ class BlobList:
         subdir_file_paths = []
 
         for file_path in file_paths:
-            found_in_subdirs = False
+            if subdirs:
+                found_in_subdirs = False
 
-            for subdir in subdirs:
-                if file_path.startswith(subdir):
-                    found_in_subdirs = True
-                    break
+                for subdir in subdirs:
+                    if file_path.startswith(subdir):
+                        found_in_subdirs = True
+                        break
 
-            if not found_in_subdirs:
-                continue
+                if not found_in_subdirs:
+                    continue
 
             subdir_file_paths.append(file_path)
 
@@ -65,6 +66,31 @@ class BlobList:
             file_paths.remove(file_path)
 
         return subdir_file_paths
+
+    def _extract_blobs(self, all_file_paths, subdirs):
+        '''
+        Extract a list of simple blobs from the file paths that are
+        found under `subdir` from a list of file paths.
+
+        Args:
+            all_file_paths (list): A list of file paths to extract from.
+            subdirs (list): A list of subdirs to match.
+
+        Returns:
+            list: A list of all the extracted simple blobs.
+        '''
+
+        blobs = []
+
+        file_paths = self._extract_subdir_file_paths(all_file_paths, subdirs)
+        for file_path in file_paths:
+            try:
+                blob = Blob(self.__dir_path, file_path)
+                blobs.append(blob)
+            except:
+                pass
+
+        return blobs
 
     def _extract_elf_blobs(self, all_file_paths, subdirs):
         '''
@@ -82,7 +108,6 @@ class BlobList:
         elf_blobs = []
         nonelf_file_paths = []
 
-        name_blobs = {}
         file_paths = self._extract_subdir_file_paths(all_file_paths, subdirs)
         for file_path in file_paths:
             try:
@@ -148,6 +173,9 @@ class BlobList:
             solved_any = False
             source_blob = source_blobs[i]
             for target_blob in target_blobs:
+                if source_blob == target_blob:
+                    continue
+
                 solved_one = target_blob.try_needed_blob(source_blob)
                 if solved_one:
                     solved_any = True
@@ -162,18 +190,44 @@ class BlobList:
 
         lib_groups = self._extract_elf_groups(all_file_paths, ["lib/", "lib64/"])
         executable_blobs = self._extract_elf_blobs(all_file_paths, ["bin/"])
-
-        for blob in lib_groups + executable_blobs:
-            blob.find_needed_blobs()
+        all_blobs = self._extract_blobs(all_file_paths, [])
 
         self._adopt_blobs(lib_groups, lib_groups)
         self._adopt_blobs(executable_blobs, lib_groups)
+        self._adopt_blobs(executable_blobs, all_blobs)
 
-        for blob in lib_groups + executable_blobs:
-            print(blob.get_name())
-            # found_blobs = blob.get_found_blobs()
-            # for found_blob in found_blobs:
-            #     print(found_blob.get_path())
+        blob_usage_map = {}
+        blobs = executable_blobs + lib_groups + all_blobs
+
+        for blob in blobs:
+            blob_list = blob.get_blob_list()
+            for blob_item in blob_list:
+                path = blob_item.get_path()
+                if path not in blob_usage_map:
+                    blob_usage_map[path] = 0
+
+                blob_usage_map[path] += 1
+
+        for blob in blobs:
+            blob_list = blob.get_blob_list()
+            first_blob = blob_list[0]
+            print("# blobs for {}".format(first_blob.get_name()))
+            for blob_item in blob_list:
+                path = blob_item.get_path()
+                if blob_usage_map[path] == 1:
+                    print(path)
+
+            print()
+
+        for blob in blobs:
+            blob_list = blob.get_blob_list()
+            first_blob = blob_list[0]
+            print("# common blobs for {}".format(first_blob.get_name()))
+            for blob_item in blob_list:
+                path = blob_item.get_path()
+                if blob_usage_map[path] > 1:
+                    print(path)
+
             print()
 
 if len(sys.argv) < 2:

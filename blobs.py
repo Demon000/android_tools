@@ -3,66 +3,98 @@ import os
 from utils import *
 
 class CommonBlobInterface:
-    def get_needed_blobs(self):
-        return self._needed_blobs
+    def __init__(self):
+        self._blobs = set()
 
-    def get_strings(self):
-        return self._strings
+    def _is_same_interface(self, other):
+        name = self.get_name()
+        other_name = other.get_name()
+        parts = name.split("@")
+        if len(parts) < 2:
+            return False
 
-    def _is_needed_blob(self, other):
-        name = other.get_name()
-        if name in self._needed_blobs:
+        interface_name = parts[0]
+        if interface_name in other_name:
             return True
 
-        for string in self._strings:
-            if name in string:
+        return False
+
+    def _is_string_inside(self, other):
+        blobs = [self] + list(self._blobs)
+        for blob in blobs:
+            path = blob.get_absolute_path()
+            other_name = other.get_name()
+            if contains_string(path, other_name):
                 return True
 
         return False
 
-    def _adopt_blobs(self, other):
-        # ELF groups aren't real blobs so don't add them to
-        # the list of blobs, but add the blobs they contain.
-        if isinstance(other, ELFGroup):
-            blobs = other.get_initial_blobs()
-            self._blobs.extend(blobs)
-        elif isinstance(other, ELFBlob) or isinstance(other, Blob):
-            self._blobs.append(other)
+    def _is_needed_blob(self, other):
+        if self._is_same_interface(other):
+            return True
 
-        needed_blobs = other.get_needed_blobs()
-        found_blobs = other.get_found_blobs()
-        strings = other.get_strings()
+        if self._is_string_inside(other):
+            return True
 
-        self._needed_blobs.extend(needed_blobs)
-        self._blobs.extend(found_blobs)
-        self._strings.extend(strings)
+        return False
 
     def try_needed_blob(self, other):
-        if self == other:
-            return False
-
-        if other in self._blobs:
-            return False
-
         if not self._is_needed_blob(other):
             return False
 
-        self._adopt_blobs(other)
+        found_blobs = other.get_found_blobs()
+        self._blobs.update(found_blobs)
+        self._blobs.add(other)
 
         return True
 
     def get_found_blobs(self):
-        return self._blobs[:]
+        return self._blobs
+
+    def get_blob_list(self):
+        # Get the target arches of top-most blob
+        if isinstance(self, ELFGroup):
+            target_arches = self.get_arches()
+        elif isinstance(self, ELFBlob):
+            arch = self.get_arch()
+            target_arches = [arch]
+        else:
+            target_arches = []
+
+        # Unpack ELFGroups
+        blobs = [self] + list(self._blobs)
+        unpacked_blobs = []
+        for blob in blobs:
+            if isinstance(blob, ELFGroup):
+                initial_blobs = blob.get_initial_blobs()
+                unpacked_blobs.extend(initial_blobs)
+            else:
+                unpacked_blobs.append(blob)
+
+        if not target_arches:
+            return unpacked_blobs
+
+        final_blobs = []
+        for blob in unpacked_blobs:
+            if isinstance(blob, ELFBlob):
+                arch = blob.get_arch()
+                if arch not in target_arches:
+                    continue
+
+            final_blobs.append(blob)
+
+        return final_blobs
 
 class Blob(CommonBlobInterface):
     def __init__(self, dir_path, path):
+        super().__init__()
+
         absolute_path = os.path.join(dir_path, path)
         name = os.path.basename(path)
 
         self._absolute_path = absolute_path
         self._path = path
         self._name = name
-        self._blobs = []
 
     def get_name(self):
         return self._name
@@ -72,10 +104,6 @@ class Blob(CommonBlobInterface):
 
     def get_absolute_path(self):
         return self._absolute_path
-
-    def find_needed_blobs(self):
-        self._needed_blobs = []
-        self._strings = get_strings(self._absolute_path)
 
 class ELFBlob(Blob):
     def __init__(self, dir_path, path):
@@ -89,28 +117,26 @@ class ELFBlob(Blob):
     def get_arch(self):
         return self._arch
 
-    def set_needed_blobs(self, needed_blobs):
-        self._needed_blobs = needed_blobs
-
-    def set_strings(self, strings):
-        self._strings = strings
-
-    def find_needed_blobs(self):
-        self._needed_blobs = get_needed_libraries(self._absolute_path)
-        self._strings = get_rodata_strings(self._absolute_path)
-
 class ELFGroup(CommonBlobInterface):
     def __init__(self, dir_path, blobs):
-        self._blobs = blobs[:]
-        self._initial_blobs = blobs[:]
+        super().__init__()
+
+        self._initial_blobs = blobs
 
     def get_name(self):
         return self._initial_blobs[0].get_name()
 
-    def get_initial_blobs(self):
-        return self._initial_blobs[:]
+    def get_arches(self):
+        arches = []
 
-    def find_needed_blobs(self):
-        path = self._initial_blobs[0].get_absolute_path()
-        self._needed_blobs = get_needed_libraries(path)
-        self._strings = get_rodata_strings(path)
+        for blob in self._initial_blobs:
+            arch = blob.get_arch()
+            arches.append(arch)
+
+        return arches
+
+    def get_absolute_path(self):
+        return self._initial_blobs[0].get_absolute_path()
+
+    def get_initial_blobs(self):
+        return self._initial_blobs

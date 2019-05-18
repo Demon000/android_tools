@@ -1,60 +1,33 @@
 from string import printable
 
-from elftools.elf.elffile import ELFFile
-
-def get_printable_strings(binary_data, min_len=4):
-    strings = []
-
-    string = ""
-    for byte in binary_data:
-        char = chr(byte)
-
-        if char in printable:
-            string += char
-            continue
-
-        if len(string) >= min_len:
-            strings.append(string)
-
-        string = ""
-
-    return strings
-
-def get_strings(path):
-    with open(path, "rb") as file:
-        binary_data = file.read()
-
-    return get_printable_strings(binary_data)
+data_map = {}
 
 def get_arch(path):
+    elf_magic32 = b'\x7fELF\x01'
+    elf_magic64 =  b'\x7fELF\x02'
+
     with open(path, "rb") as file:
-        elffile = ELFFile(file)
-        return elffile.structs.elfclass
+        file_head = file.read(5)
 
-def get_needed_libraries(path):
-    with open(path, "rb") as file:
-        elffile = ELFFile(file)
+    if file_head == elf_magic32:
+        return "32"
 
-        dynamic_section = elffile.get_section_by_name('.dynamic')
-        if not dynamic_section:
-            return []
+    if file_head == elf_magic64:
+        return "64"
 
-        libraries = []
-        for tag in dynamic_section.iter_tags():
-            if tag.entry.d_tag == 'DT_NEEDED':
-                libraries.append(tag.needed)
+    raise ValueError()
 
-        return libraries
+def contains_string(path, string):
+    if path in data_map:
+        binary_data = data_map[path]
+    else:
+        with open(path, "rb") as file:
+            binary_data = file.read()
+        data_map[path] = binary_data
 
-def get_rodata_strings(path, min_len=4):
-    with open(path, "rb") as file:
-        elffile = ELFFile(file)
-
-        rodata_section = elffile.get_section_by_name('.rodata')
-        if rodata_section:
-            binary_data = rodata_section.data()
-        else:
-            binary_data = bytes()
-
-    return get_printable_strings(binary_data)
-
+    binary_string = bytes(string, 'UTF-8')
+    position = binary_data.find(binary_string)
+    if position == -1:
+        return False
+    else:
+        return True
