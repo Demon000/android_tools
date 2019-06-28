@@ -9,7 +9,13 @@ from blobs import *
 class BlobList:
     def __init__(self, dir_path):
         self.__dir_path = dir_path
-        self.__blobs = []
+        self.__modules = self._read_modules()
+
+    def _read_modules(self):
+        with open("source_available.txt", "r") as file:
+            modules = file.readlines()
+
+        return modules
 
     def _get_dir_file_paths(self, dir_path):
         '''
@@ -188,19 +194,23 @@ class BlobList:
     def build_blob_trees(self):
         all_file_paths = self._get_dir_file_paths(self.__dir_path)
 
-        lib_groups = self._extract_elf_groups(all_file_paths, ["lib/", "lib64/"])
-        executable_blobs = self._extract_elf_blobs(all_file_paths, ["bin/"])
-        all_blobs = self._extract_blobs(all_file_paths, [])
+        self._lib_groups = self._extract_elf_groups(all_file_paths, ["lib/", "lib64/"])
+        self._executable_blobs = self._extract_elf_blobs(all_file_paths, ["bin/"])
+        self._all_blobs = self._extract_blobs(all_file_paths, [])
 
         # Figure out dependencies between libs
-        self._adopt_blobs(lib_groups, lib_groups)
+        self._adopt_blobs(self._lib_groups, self._lib_groups)
 
         # Figure out dependencies of executables
-        self._adopt_blobs(executable_blobs, lib_groups)
-        self._adopt_blobs(executable_blobs, all_blobs)
+        self._adopt_blobs(self._executable_blobs, self._lib_groups)
+        self._adopt_blobs(self._executable_blobs, self._all_blobs)
+
+    def print_blobs(self, file_path):
+        file = open(file_path, "w")
 
         blob_usage_map = {}
-        blobs = executable_blobs + lib_groups + all_blobs
+
+        blobs = self._executable_blobs + self._lib_groups + self._all_blobs
 
         for blob in blobs:
             blob_list = blob.get_blob_list()
@@ -212,33 +222,88 @@ class BlobList:
                 blob_usage_map[path] += 1
 
         for blob in blobs:
+            if blob.get_name() in self.__modules:
+                continue
+
+            file.write("# blobs for {}\n".format(blob.get_name()))
             blob_list = blob.get_blob_list()
-            first_blob = blob_list[0]
-            print("# blobs for {}".format(first_blob.get_name()))
             for blob_item in blob_list:
+                if blob_item.get_name() in self.__modules:
+                    continue
+
                 path = blob_item.get_path()
                 if blob_usage_map[path] == 1:
-                    print(path)
+                    file.write("{}\n".format(path))
 
-            print()
+            file.write("\n")
 
         for blob in blobs:
+            if blob.get_name() in self.__modules:
+                continue
+
+            file.write("# common blobs for {}\n".format(blob.get_name()))
             blob_list = blob.get_blob_list()
-            first_blob = blob_list[0]
-            print("# common blobs for {}".format(first_blob.get_name()))
             for blob_item in blob_list:
+                if blob_item.get_name() in self.__modules:
+                    continue
+
                 path = blob_item.get_path()
                 if blob_usage_map[path] > 1:
-                    print(path)
+                    file.write("{}\n".format(path))
 
-            print()
+            file.write("\n")
+
+        file.close()
+
+    def print_modules(self, file_path):
+        file = open(file_path, "w")
+
+        blobs = self._executable_blobs + self._lib_groups + self._all_blobs
+
+        def print_packages(blobs):
+            blob_lines = []
+            for blob in blobs:
+                blob_line = "\t" + blob.get_name()
+                blob_lines.append(blob_line)
+
+            string = "PRODUCT_PACKAGES += \\\n" + " \\\n".join(blob_lines) + "\n"
+            file.write(string)
+
+        for blob in blobs:
+            blob_name = blob.get_name()
+            file.write("# modules for {}\n".format(blob_name))
+
+            if blob_name in self.__modules:
+                print_packages([blob])
+            else:
+                modules_list = []
+
+                blob_list = blob.get_blob_list()
+                for blob_item in blob_list:
+                    if blob_item.get_name() in self.__modules:
+                        modules_list.append(blob_item)
+
+                print_packages(modules_list)
+
+            file.write("\n")
+
+        file.close()
 
 if len(sys.argv) < 2:
     print("not enough arguments!")
-    print("usage: blob_list.py <vendor_path>")
+    print("usage: blob_list.py <vendor_path> <target_path>")
     exit()
 
-path = sys.argv[1]
+vendor_path = sys.argv[1]
+target_path = sys.argv[2]
 
-blob_list = BlobList(path)
+if not os.path.exists(target_path):
+    os.makedirs(target_path)
+
+target_proprietary_files_path = path.join(target_path, "proprietary_files.txt")
+target_modules_path = path.join(target_path, "modules.mk")
+
+blob_list = BlobList(vendor_path)
 blob_list.build_blob_trees()
+blob_list.print_blobs(target_proprietary_files_path)
+blob_list.print_modules(target_modules_path)
