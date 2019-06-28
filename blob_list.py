@@ -231,7 +231,8 @@ class BlobList:
             print()
 
 if len(sys.argv) < 2:
-    print("Invalid number of arguments.")
+    print("not enough arguments!")
+    print("usage: blob_list.py <vendor_path>")
     exit()
 
 path = sys.argv[1]
