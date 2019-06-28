@@ -300,8 +300,8 @@ target_path = sys.argv[2]
 if not os.path.exists(target_path):
     os.makedirs(target_path)
 
-target_proprietary_files_path = path.join(target_path, "proprietary_files.txt")
-target_modules_path = path.join(target_path, "modules.mk")
+target_proprietary_files_path = os.path.join(target_path, "proprietary_files.txt")
+target_modules_path = os.path.join(target_path, "modules.mk")
 
 blob_list = BlobList(vendor_path)
 blob_list.build_blob_trees()
