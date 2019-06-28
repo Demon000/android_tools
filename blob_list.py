@@ -222,10 +222,12 @@ class BlobList:
                 blob_usage_map[path] += 1
 
         for blob in blobs:
-            if blob.get_name() in self.__modules:
+            blob_name = blob.get_name()
+            if blob_name in self.__modules:
                 continue
 
-            file.write("# blobs for {}\n".format(blob.get_name()))
+            pritable_paths = []
+
             blob_list = blob.get_blob_list()
             for blob_item in blob_list:
                 if blob_item.get_name() in self.__modules:
@@ -233,15 +235,22 @@ class BlobList:
 
                 path = blob_item.get_path()
                 if blob_usage_map[path] == 1:
+                    printable_paths.append(path)
+
+            if len(printable_paths):
+                file.write("# blobs for {}\n".format(blob_name))
+                for path in printable_paths:
                     file.write("{}\n".format(path))
 
-            file.write("\n")
+                file.write("\n")
 
         for blob in blobs:
-            if blob.get_name() in self.__modules:
+            blob_name = blob.get_name()
+            if blob_name in self.__modules:
                 continue
 
-            file.write("# common blobs for {}\n".format(blob.get_name()))
+            pritable_paths = []
+
             blob_list = blob.get_blob_list()
             for blob_item in blob_list:
                 if blob_item.get_name() in self.__modules:
@@ -249,9 +258,14 @@ class BlobList:
 
                 path = blob_item.get_path()
                 if blob_usage_map[path] > 1:
+                    printable_paths.append(path)
+
+            if len(printable_paths):
+                file.write("# common blobs for {}\n".format(blob_name))
+                for path in printable_paths:
                     file.write("{}\n".format(path))
 
-            file.write("\n")
+                file.write("\n")
 
         file.close()
 
@@ -271,10 +285,11 @@ class BlobList:
 
         for blob in blobs:
             blob_name = blob.get_name()
-            file.write("# modules for {}\n".format(blob_name))
 
             if blob_name in self.__modules:
+                file.write("# modules for {}\n".format(blob_name))
                 print_packages([blob])
+                file.write("\n")
             else:
                 modules_list = []
 
@@ -283,9 +298,10 @@ class BlobList:
                     if blob_item.get_name() in self.__modules:
                         modules_list.append(blob_item)
 
-                print_packages(modules_list)
-
-            file.write("\n")
+                if len(modules_list):
+                    file.write("# modules for {}\n".format(blob_name))
+                    print_packages(modules_list)
+                    file.write("\n")
 
         file.close()
 
