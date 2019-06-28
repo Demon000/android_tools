@@ -192,7 +192,10 @@ class BlobList:
         executable_blobs = self._extract_elf_blobs(all_file_paths, ["bin/"])
         all_blobs = self._extract_blobs(all_file_paths, [])
 
+        # Figure out dependencies between libs
         self._adopt_blobs(lib_groups, lib_groups)
+
+        # Figure out dependencies of executables
         self._adopt_blobs(executable_blobs, lib_groups)
         self._adopt_blobs(executable_blobs, all_blobs)
 
