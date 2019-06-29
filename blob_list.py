@@ -13,7 +13,7 @@ class BlobList:
 
     def _read_modules(self):
         with open("source_available.txt", "r") as file:
-            modules = file.readlines()
+            modules = file.read().splitlines()
 
         return modules
 
@@ -226,7 +226,7 @@ class BlobList:
             if blob_name in self.__modules:
                 continue
 
-            pritable_paths = []
+            printable_paths = []
 
             blob_list = blob.get_blob_list()
             for blob_item in blob_list:
@@ -249,7 +249,7 @@ class BlobList:
             if blob_name in self.__modules:
                 continue
 
-            pritable_paths = []
+            printable_paths = []
 
             blob_list = blob.get_blob_list()
             for blob_item in blob_list:
@@ -277,7 +277,7 @@ class BlobList:
         def print_packages(blobs):
             blob_lines = []
             for blob in blobs:
-                blob_line = "\t" + blob.get_name()
+                blob_line = "\t" + blob.get_module_name()
                 blob_lines.append(blob_line)
 
             string = "PRODUCT_PACKAGES += \\\n" + " \\\n".join(blob_lines) + "\n"
@@ -286,7 +286,7 @@ class BlobList:
         for blob in blobs:
             blob_name = blob.get_name()
 
-            if blob_name in self.__modules:
+            if blob.get_module_name() in self.__modules:
                 file.write("# modules for {}\n".format(blob_name))
                 print_packages([blob])
                 file.write("\n")
@@ -295,7 +295,7 @@ class BlobList:
 
                 blob_list = blob.get_blob_list()
                 for blob_item in blob_list:
-                    if blob_item.get_name() in self.__modules:
+                    if blob_item.get_module_name() in self.__modules:
                         modules_list.append(blob_item)
 
                 if len(modules_list):

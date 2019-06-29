@@ -91,13 +91,18 @@ class Blob(CommonBlobInterface):
 
         absolute_path = os.path.join(dir_path, path)
         name = os.path.basename(path)
+        module_name = os.path.splitext(name)[0]
 
         self._absolute_path = absolute_path
         self._path = path
         self._name = name
+        self._module_name = module_name
 
     def get_name(self):
         return self._name
+
+    def get_module_name(self):
+        return self._module_name
 
     def get_path(self):
         return self._path
@@ -125,6 +130,9 @@ class ELFGroup(CommonBlobInterface):
 
     def get_name(self):
         return self._initial_blobs[0].get_name()
+
+    def get_module_name(self):
+        return self._initial_blobs[0].get_module_name()
 
     def get_arches(self):
         arches = []
