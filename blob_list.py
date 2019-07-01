@@ -228,8 +228,7 @@ class BlobList:
             if blob_name in self.__modules:
                 continue
 
-            file.write("# blobs for {}\n".format(blob_module_name))
-
+            blob_paths = []
             blob_items = blob.get_blob_list()
             for blob_item in blob_items:
                 blob_item_module_name = blob_item.get_module_name()
@@ -237,8 +236,12 @@ class BlobList:
                     continue
 
                 blob_item_path = blob_item.get_path()
-                file.write("{}\n".format(blob_item_path))
+                blob_paths.append(blob_item_path)
 
+            blob_paths.sort()
+            file.write("# blobs for {}\n".format(blob_module_name))
+            for blob_path in blob_paths:
+                file.write("{}\n".format(blob_path))
             file.write("\n")
 
     def print_packages(self, file, blobs):
@@ -248,9 +251,13 @@ class BlobList:
             if blob_module_name not in module_names:
                 module_names.append(blob_module_name)
 
+        module_names.sort()
         string = "PRODUCT_PACKAGES += \\\n"
-        for module_name in module_names:
+        for module_name in module_names[:-1]:
             string += "\t" + module_name + " \\\n"
+
+        last_module_name = module_names[-1]
+        string += "\t" + last_module_name + "\n"
 
         file.write(string)
 
