@@ -19,12 +19,13 @@ class CommonBlobInterface:
 
         return False
 
-    def _is_string_inside(self, other):
+    def _is_other_name_inside(self, other):
+        other_name = other.get_name()
         blobs = [self] + list(self._blobs)
         for blob in blobs:
-            path = blob.get_absolute_path()
-            other_name = other.get_name()
-            if contains_string(path, other_name):
+            blob_path = blob.get_absolute_path()
+
+            if path_contains_string(blob_path, other_name):
                 return True
 
         return False
@@ -33,7 +34,7 @@ class CommonBlobInterface:
         if self._is_same_interface(other):
             return True
 
-        if self._is_string_inside(other):
+        if self._is_other_name_inside(other):
             return True
 
         return False

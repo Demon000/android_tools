@@ -17,7 +17,9 @@ def get_arch(path):
 
     raise ValueError()
 
-def contains_string(path, string):
+def path_contains_string(path, string):
+    binary_string = bytes(string, 'UTF-8')
+
     if path in data_map:
         binary_data = data_map[path]
     else:
@@ -25,7 +27,6 @@ def contains_string(path, string):
             binary_data = file.read()
         data_map[path] = binary_data
 
-    binary_string = bytes(string, 'UTF-8')
     position = binary_data.find(binary_string)
     if position == -1:
         return False
