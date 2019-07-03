@@ -6,15 +6,14 @@ class CommonBlobInterface:
     def __init__(self):
         self._blobs = set()
 
-    def _is_same_interface(self, other):
-        name = self.get_name()
-        other_name = other.get_name()
-        parts = name.split("@")
-        if len(parts) < 2:
+    def _is_service_init_file(self, other):
+        path = self.get_absolute_path()
+        if not path.startswith("bin/"):
             return False
 
-        interface_name = parts[0]
-        if interface_name in other_name:
+        name = self.get_name()
+        other_name = other.get_name()
+        if name + ".rc" == other.get_name():
             return True
 
         return False
@@ -31,7 +30,7 @@ class CommonBlobInterface:
         return False
 
     def _is_needed_blob(self, other):
-        if self._is_same_interface(other):
+        if self._is_service_init_file(other):
             return True
 
         if self._is_other_name_inside(other):
