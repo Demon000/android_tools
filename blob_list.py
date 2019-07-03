@@ -204,29 +204,22 @@ class BlobList:
     def build_blob_trees(self):
         all_file_paths = self._get_dir_file_paths(self.__dir_path)
 
-        self._lib_groups = self._extract_elf_groups(all_file_paths, ["lib/", "lib64/"])
-        self._executable_blobs = self._extract_elf_blobs(all_file_paths, ["bin/"])
-        self._all_blobs = self._extract_blobs(all_file_paths, [])
+        executable_blobs = self._extract_elf_blobs(all_file_paths, ["bin/"])
+        lib_groups = self._extract_elf_groups(all_file_paths, ["lib/", "lib64/"])
+        all_blobs = self._extract_blobs(all_file_paths, [])
 
-        # Figure out dependencies between libs
-        self._adopt_blobs(self._lib_groups, self._lib_groups)
+        self._blobs = executable_blobs + lib_groups + all_blobs
 
-        # Figure out dependencies of other files
-        self._adopt_blobs(self._all_blobs, self._lib_groups)
+        # Figure out non-elf dependencies
+        self._adopt_blobs(self._blobs, all_blobs)
 
-        # Figure out dependencies of executables
-        self._adopt_blobs(self._executable_blobs, self._lib_groups)
-        self._adopt_blobs(self._executable_blobs, self._all_blobs)
+        # Figure out elf dependencies
+        self._adopt_blobs(self._blobs, lib_groups)
 
     def print_blobs(self, file):
-        blobs = self._executable_blobs + self._lib_groups + self._all_blobs
-
-        for blob in blobs:
+        for blob in self._blobs:
             blob_name = blob.get_name()
             blob_module_name = blob.get_module_name()
-
-            if blob_name in self.__modules:
-                continue
 
             blob_paths = []
             blob_items = blob.get_blob_list()
@@ -238,48 +231,45 @@ class BlobList:
                 blob_item_path = blob_item.get_path()
                 blob_paths.append(blob_item_path)
 
+            if not len(blob_paths):
+                continue
+
             blob_paths.sort()
             file.write("# blobs for {}\n".format(blob_module_name))
             for blob_path in blob_paths:
                 file.write("{}\n".format(blob_path))
             file.write("\n")
 
-    def print_packages(self, file, blobs):
-        module_names = []
-        for blob in blobs:
-            blob_module_name = blob.get_module_name()
-            if blob_module_name not in module_names:
-                module_names.append(blob_module_name)
-
-        module_names.sort()
-        string = "PRODUCT_PACKAGES += \\\n"
-        for module_name in module_names[:-1]:
-            string += "\t" + module_name + " \\\n"
-
-        last_module_name = module_names[-1]
-        string += "\t" + last_module_name + "\n"
-
-        file.write(string)
-
     def print_modules(self, file):
-        blobs = self._executable_blobs + self._lib_groups + self._all_blobs
-
-        for blob in blobs:
+        for blob in self._blobs:
             blob_name = blob.get_name()
             blob_module_name = blob.get_module_name()
 
-            modules_list = []
+            module_names = []
             blob_list = blob.get_blob_list()
             for blob_item in blob_list:
                 blob_item_module_name = blob_item.get_module_name()
-                if blob_item_module_name in self.__modules:
-                    modules_list.append(blob_item)
+                if blob_item_module_name not in self.__modules:
+                    continue
 
-            if not len(modules_list):
+                if blob_item_module_name in module_names:
+                    continue
+
+                module_names.append(blob_item_module_name)
+
+            if not len(module_names):
                 continue
 
+            module_names.sort()
             file.write("# modules for {}\n".format(blob_name))
-            self.print_packages(file, modules_list)
+            string = "PRODUCT_PACKAGES += \\\n"
+            for module_name in module_names[:-1]:
+                string += "\t" + module_name + " \\\n"
+
+            last_module_name = module_names[-1]
+            string += "\t" + last_module_name + "\n"
+
+            file.write(string)
             file.write("\n")
 
 if len(sys.argv) < 2:
