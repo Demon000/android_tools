@@ -3,6 +3,7 @@
 import sys
 
 from blobs import *
+from concurrent.futures import ThreadPoolExecutor as PoolExecutor
 
 
 class BlobList:
@@ -19,11 +20,12 @@ class BlobList:
 
         self._blobs = executable_blobs + lib_groups + all_blobs
 
-        # Figure out non-elf dependencies
-        self._adopt_blobs(self._blobs, all_blobs)
+        with PoolExecutor(max_workers=4) as executor:
+            # Figure out non-elf dependencies
+            executor.submit(self._adopt_blobs, (self._blobs, all_blobs))
 
-        # Figure out elf dependencies
-        self._adopt_blobs(self._blobs, lib_groups)
+            # Figure out elf dependencies
+            executor.submit(self._adopt_blobs, (self._blobs, lib_groups))
 
     @staticmethod
     def _read_modules():
