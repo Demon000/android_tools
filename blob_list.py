@@ -1,10 +1,9 @@
 #!/usr/bin/python
 
-import os
 import sys
-import subprocess
 
 from blobs import *
+
 
 class BlobList:
     def __init__(self, dir_path):
@@ -12,20 +11,37 @@ class BlobList:
         self.__modules = self._read_modules()
         self.__blacklisted = self._read_blacklisted()
 
-    def _read_modules(self):
+        all_file_paths = self._get_dir_file_paths(self.__dir_path)
+
+        executable_blobs = self._extract_elf_blobs(all_file_paths, ["bin/"])
+        lib_groups = self._extract_elf_groups(all_file_paths, ["lib/", "lib64/"])
+        all_blobs = self._extract_blobs(all_file_paths, [])
+
+        self._blobs = executable_blobs + lib_groups + all_blobs
+
+        # Figure out non-elf dependencies
+        self._adopt_blobs(self._blobs, all_blobs)
+
+        # Figure out elf dependencies
+        self._adopt_blobs(self._blobs, lib_groups)
+
+    @staticmethod
+    def _read_modules():
         with open("source_available_files.txt", "r") as file:
             modules = file.read().splitlines()
 
         return modules
 
-    def _read_blacklisted(self):
+    @staticmethod
+    def _read_blacklisted():
         with open("blacklisted_files.txt", "r") as file:
             blacklisted = file.read().splitlines()
 
         return blacklisted
 
-    def _get_dir_file_paths(self, dir_path):
-        '''
+    @staticmethod
+    def _get_dir_file_paths(dir_path):
+        """
         Get a list of file paths found inside `dir_path`.
 
         Args:
@@ -33,7 +49,7 @@ class BlobList:
 
         Returns:
             list: A list of all the file paths.
-        '''
+        """
 
         file_paths = []
         for root, _, files in os.walk(dir_path):
@@ -47,8 +63,9 @@ class BlobList:
 
         return file_paths
 
-    def _extract_subdir_file_paths(self, file_paths, subdirs):
-        '''
+    @staticmethod
+    def _extract_subdir_file_paths(file_paths, subdirs):
+        """
         Extract file paths that are found under `subdir` from a list of file paths.
 
         Args:
@@ -57,7 +74,7 @@ class BlobList:
 
         Returns:
             list: A list of all the extracted file paths.
-        '''
+        """
 
         subdir_file_paths = []
 
@@ -81,7 +98,7 @@ class BlobList:
         return subdir_file_paths
 
     def _extract_blobs(self, all_file_paths, subdirs):
-        '''
+        """
         Extract a list of simple blobs from the file paths that are
         found under `subdir` from a list of file paths.
 
@@ -91,7 +108,7 @@ class BlobList:
 
         Returns:
             list: A list of all the extracted simple blobs.
-        '''
+        """
 
         blobs = []
 
@@ -109,7 +126,7 @@ class BlobList:
         return blobs
 
     def _extract_elf_blobs(self, all_file_paths, subdirs):
-        '''
+        """
         Extract a list of elf blobs from the file paths that are
         found under `subdir` from a list of file paths.
 
@@ -119,10 +136,10 @@ class BlobList:
 
         Returns:
             list: A list of all the extracted elf blobs.
-        '''
+        """
 
         elf_blobs = []
-        nonelf_file_paths = []
+        non_elf_file_paths = []
 
         file_paths = self._extract_subdir_file_paths(all_file_paths, subdirs)
         for file_path in file_paths:
@@ -130,16 +147,16 @@ class BlobList:
                 elf_blob = ELFBlob(self.__dir_path, file_path)
                 elf_blobs.append(elf_blob)
             except:
-                nonelf_file_paths.append(file_path)
+                non_elf_file_paths.append(file_path)
 
         # Add back non-ELF files
-        for file_path in nonelf_file_paths:
+        for file_path in non_elf_file_paths:
             all_file_paths.append(file_path)
 
         return elf_blobs
 
     def _extract_elf_groups(self, all_file_paths, subdirs):
-        '''
+        """
         Extract a list of elf groups from the file paths that are
         found under `subdir` from a list of file paths.
 
@@ -149,7 +166,7 @@ class BlobList:
 
         Returns:
             list: A list of all the extracted elf groups.
-        '''
+        """
 
         nonelf_file_paths = []
 
@@ -173,14 +190,15 @@ class BlobList:
 
         return elf_groups
 
-    def _adopt_blobs(self, target_blobs, source_blobs):
-        '''
+    @staticmethod
+    def _adopt_blobs(target_blobs, source_blobs):
+        """
         Adopt needed blobs from a list of blobs.
 
         Args:
             target_blobs (list): The list of blobs to adopt into.
             source_blobs (list): The list of blobs to adopt from.
-        '''
+        """
         i = 0
         while True:
             if i == len(source_blobs):
@@ -200,21 +218,6 @@ class BlobList:
                 source_blobs.pop(i)
             else:
                 i += 1
-
-    def build_blob_trees(self):
-        all_file_paths = self._get_dir_file_paths(self.__dir_path)
-
-        executable_blobs = self._extract_elf_blobs(all_file_paths, ["bin/"])
-        lib_groups = self._extract_elf_groups(all_file_paths, ["lib/", "lib64/"])
-        all_blobs = self._extract_blobs(all_file_paths, [])
-
-        self._blobs = executable_blobs + lib_groups + all_blobs
-
-        # Figure out non-elf dependencies
-        self._adopt_blobs(self._blobs, all_blobs)
-
-        # Figure out elf dependencies
-        self._adopt_blobs(self._blobs, lib_groups)
 
     def print_blobs(self, file):
         for blob in self._blobs:
@@ -272,6 +275,7 @@ class BlobList:
             file.write(string)
             file.write("\n")
 
+
 if len(sys.argv) < 2:
     print("not enough arguments!")
     print("usage: blob_list.py <vendor_path> <target_path>")
@@ -287,7 +291,6 @@ target_proprietary_files_path = os.path.join(target_path, "proprietary_files.txt
 target_modules_path = os.path.join(target_path, "modules.mk")
 
 blob_list = BlobList(vendor_path)
-blob_list.build_blob_trees()
 with open(target_proprietary_files_path, "w") as file:
     blob_list.print_blobs(file)
 
