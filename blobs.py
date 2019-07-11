@@ -2,6 +2,7 @@ import os
 
 from utils import *
 
+
 class CommonBlobInterface:
     def __init__(self):
         self._blobs = set()
@@ -85,6 +86,13 @@ class CommonBlobInterface:
 
         return final_blobs
 
+    def get_absolute_path(self):
+        raise Exception("Not implemented")
+
+    def get_name(self):
+        raise Exception("Not implemented")
+
+
 class Blob(CommonBlobInterface):
     def __init__(self, dir_path, path):
         super().__init__()
@@ -110,6 +118,7 @@ class Blob(CommonBlobInterface):
     def get_absolute_path(self):
         return self._absolute_path
 
+
 class ELFBlob(Blob):
     def __init__(self, dir_path, path):
         super().__init__(dir_path, path)
@@ -122,8 +131,9 @@ class ELFBlob(Blob):
     def get_arch(self):
         return self._arch
 
+
 class ELFGroup(CommonBlobInterface):
-    def __init__(self, dir_path, blobs):
+    def __init__(self, _, blobs):
         super().__init__()
 
         self._initial_blobs = blobs
