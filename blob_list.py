@@ -18,14 +18,20 @@ class BlobList:
         all_blobs = self._extract_blobs(all_file_paths, [])
 
         blobs = executable_blobs + lib_groups + all_blobs
+        adopted_blobs = []
 
         # Figure out non-elf dependencies
-        self._adopt_blobs(blobs, all_blobs)
+        current_adopted_blobs = self._adopt_blobs(blobs, all_blobs)
+        adopted_blobs.update(current_adopted_blobs)
 
         # Figure out elf dependencies
-        self._adopt_blobs(blobs, lib_groups)
+        current_adopted_blobs = self._adopt_blobs(blobs, lib_groups)
+        adopted_blobs.update(current_adopted_blobs)
 
-        self._blobs = executable_blobs + lib_groups + all_blobs
+        for adopted_blob in adopted_blobs:
+            blobs.remove(adopted_blob)
+
+        self._blobs = blobs
 
     @staticmethod
     def _read_modules():
@@ -201,13 +207,11 @@ class BlobList:
             target_blobs (list): The list of blobs to adopt into.
             source_blobs (list): The list of blobs to adopt from.
         """
-        i = 0
-        while True:
-            if i == len(source_blobs):
-                break
+        adopted_blobs = []
 
+        for source_blob in source_blobs:
             solved_any = False
-            source_blob = source_blobs[i]
+
             for target_blob in target_blobs:
                 if source_blob == target_blob:
                     continue
@@ -217,9 +221,9 @@ class BlobList:
                     solved_any = True
 
             if solved_any:
-                source_blobs.pop(i)
-            else:
-                i += 1
+                adopted_blobs.append(source_blob)
+
+        return adopted_blobs
 
     def print_blobs(self, file):
         for blob in self._blobs:
