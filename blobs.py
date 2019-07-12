@@ -95,7 +95,7 @@ class Blob(CommonBlobInterface):
         return self._absolute_path
 
     def get_contained_blobs(self):
-        return self
+        return [self]
 
     def get_arches(self):
         return []
