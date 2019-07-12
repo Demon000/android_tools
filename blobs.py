@@ -43,14 +43,9 @@ class CommonBlobInterface:
         if not self._is_needed_blob(other):
             return False
 
-        found_blobs = other.get_found_blobs()
-        self._blobs.update(found_blobs)
         self._blobs.add(other)
 
         return True
-
-    def get_found_blobs(self):
-        return self._blobs
 
     def get_blob_list(self):
         # Get the target arches of top-most blob
