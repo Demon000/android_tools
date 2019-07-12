@@ -225,29 +225,30 @@ class BlobList:
 
         return adopted_blobs
 
+    def _print_blob(self, visited_blobs, blob, depth, file):
+        visited_blobs.append(blob)
+
+        indent = "\t" * depth
+        file.write("{} {}\n", indent, blob_path)
+
+        blob_items = blob.get_blob_list()
+        for blob_item in blob_items:
+            if blob_item not in visited_blobs:
+                self._print_blob(visited_blobs, blob_item, depth + 1, file)
+
+    def print_blob(self, blob, file):
+        visited_blobs = []
+
+        blob_module_name = blob.get_module_name()
+        file.write("# {}\n".format(blob_module_name))
+
+        blob_items = blob.get_blob_list()
+        for blob_item in blob_items:
+            self._print_blob(visited_blobs, blob, 0, file)
+
     def print_blobs(self, file):
         for blob in self._blobs:
-            blob_name = blob.get_name()
-            blob_module_name = blob.get_module_name()
-
-            blob_paths = []
-            blob_items = blob.get_blob_list()
-            for blob_item in blob_items:
-                blob_item_module_name = blob_item.get_module_name()
-                if blob_item_module_name in self.__modules:
-                    continue
-
-                blob_item_path = blob_item.get_path()
-                blob_paths.append(blob_item_path)
-
-            if not len(blob_paths):
-                continue
-
-            blob_paths.sort()
-            file.write("# blobs for {}\n".format(blob_module_name))
-            for blob_path in blob_paths:
-                file.write("{}\n".format(blob_path))
-            file.write("\n")
+            self.print_blob(blob, file)
 
     def print_modules(self, file):
         for blob in self._blobs:
