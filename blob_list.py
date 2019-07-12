@@ -229,7 +229,8 @@ class BlobList:
         visited_blobs.append(blob)
 
         indent = "\t" * depth
-        file.write("{} {}\n", indent, blob_path)
+        blob_path = blob.get_path()
+        file.write("{} {}\n".format(indent, blob_path))
 
         blob_items = blob.get_blob_list()
         for blob_item in blob_items:
@@ -244,7 +245,7 @@ class BlobList:
 
         blob_items = blob.get_blob_list()
         for blob_item in blob_items:
-            self._print_blob(visited_blobs, blob, 0, file)
+            self._print_blob(visited_blobs, blob_item, 0, file)
 
     def print_blobs(self, file):
         for blob in self._blobs:

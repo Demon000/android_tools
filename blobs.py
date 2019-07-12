@@ -100,7 +100,7 @@ class Blob(CommonBlobInterface):
     def get_arches(self):
         return []
 
-    def is_matching_arch(arches):
+    def is_matching_arch(self, arches):
         return True
 
 
@@ -113,7 +113,7 @@ class ELFBlob(Blob):
     def get_arches(self):
         return [self._arch]
 
-    def is_matching_arch(arches):
+    def is_matching_arch(self, arches):
         return self._arch in arches
 
 
@@ -126,6 +126,9 @@ class ELFGroup(CommonBlobInterface):
         for blob in self._contained_blobs:
             blob_arches = blob.get_arches()
             self._arches.extend(blob_arches)
+
+    def get_arches(self):
+        return self._arches
 
     def get_contained_blobs(self):
         return self._contained_blobs
