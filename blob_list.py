@@ -22,11 +22,11 @@ class BlobList:
 
         # Figure out non-elf dependencies
         current_adopted_blobs = self._adopt_blobs(blobs, all_blobs)
-        adopted_blobs.update(current_adopted_blobs)
+        adopted_blobs.extend(current_adopted_blobs)
 
         # Figure out elf dependencies
         current_adopted_blobs = self._adopt_blobs(blobs, lib_groups)
-        adopted_blobs.update(current_adopted_blobs)
+        adopted_blobs.extend(current_adopted_blobs)
 
         for adopted_blob in adopted_blobs:
             blobs.remove(adopted_blob)
