@@ -5,7 +5,7 @@ from utils import *
 
 class CommonBlobInterface:
     def __init__(self):
-        self._blobs = set()
+        self._blobs = []
 
     def _is_service_init_file(self, other):
         path = self.get_absolute_path()
@@ -20,13 +20,11 @@ class CommonBlobInterface:
         return False
 
     def _is_other_name_inside(self, other):
+        path = self.get_absolute_path()
         other_name = other.get_name()
-        blobs = [self] + list(self._blobs)
-        for blob in blobs:
-            blob_path = blob.get_absolute_path()
 
-            if path_contains_string(blob_path, other_name):
-                return True
+        if path_contains_string(path, other_name):
+            return True
 
         return False
 
@@ -43,49 +41,32 @@ class CommonBlobInterface:
         if not self._is_needed_blob(other):
             return False
 
-        self._blobs.add(other)
+        self._blobs.append(other)
 
         return True
 
     def get_blob_list(self):
         # Get the target arches of top-most blob
-        if isinstance(self, ELFGroup):
-            target_arches = self.get_arches()
-        elif isinstance(self, ELFBlob):
-            arch = self.get_arch()
-            target_arches = [arch]
-        else:
-            target_arches = []
+        target_arches = self.get_arches()
 
         # Unpack ELFGroups
-        blobs = [self] + list(self._blobs)
+        packed_blobs = [self] + self._blobs
         unpacked_blobs = []
-        for blob in blobs:
-            if isinstance(blob, ELFGroup):
-                initial_blobs = blob.get_initial_blobs()
-                unpacked_blobs.extend(initial_blobs)
-            else:
-                unpacked_blobs.append(blob)
+        for blob in packed_blobs:
+            contained_blobs = blob.get_contained_blobs()
+            unpacked_blobs.extend(contained_blobs)
 
         if not target_arches:
             return unpacked_blobs
 
         final_blobs = []
         for blob in unpacked_blobs:
-            if isinstance(blob, ELFBlob):
-                arch = blob.get_arch()
-                if arch not in target_arches:
-                    continue
+            if not blob.is_matching_arch(target_arches):
+                continue
 
             final_blobs.append(blob)
 
         return final_blobs
-
-    def get_absolute_path(self):
-        raise Exception("Not implemented")
-
-    def get_name(self):
-        raise Exception("Not implemented")
 
 
 class Blob(CommonBlobInterface):
@@ -113,43 +94,50 @@ class Blob(CommonBlobInterface):
     def get_absolute_path(self):
         return self._absolute_path
 
+    def get_contained_blobs(self):
+        return self
+
+    def get_arches(self):
+        return []
+
+    def is_matching_arch(arches):
+        return True
+
 
 class ELFBlob(Blob):
     def __init__(self, dir_path, path):
         super().__init__(dir_path, path)
 
-        self._find_arch()
-
-    def _find_arch(self):
         self._arch = get_arch(self._absolute_path)
 
-    def get_arch(self):
-        return self._arch
+    def get_arches(self):
+        return [self._arch]
+
+    def is_matching_arch(arches):
+        return self._arch in arches
 
 
 class ELFGroup(CommonBlobInterface):
     def __init__(self, _, blobs):
         super().__init__()
 
-        self._initial_blobs = blobs
+        self._contained_blobs = blobs
+        self._arches = []
+        for blob in self._contained_blobs:
+            blob_arches = blob.get_arches()
+            self._arches.extend(blob_arches)
+
+    def get_contained_blobs(self):
+        return self._contained_blobs
+
+    def get_blob(self):
+        return self._contained_blobs[0]
 
     def get_name(self):
-        return self._initial_blobs[0].get_name()
+        return self.get_blob().get_name()
 
     def get_module_name(self):
-        return self._initial_blobs[0].get_module_name()
-
-    def get_arches(self):
-        arches = []
-
-        for blob in self._initial_blobs:
-            arch = blob.get_arch()
-            arches.append(arch)
-
-        return arches
+        return self.get_blob().get_module_name()
 
     def get_absolute_path(self):
-        return self._initial_blobs[0].get_absolute_path()
-
-    def get_initial_blobs(self):
-        return self._initial_blobs
+        return self.get_blob().get_absolute_path()
