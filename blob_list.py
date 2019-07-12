@@ -17,13 +17,15 @@ class BlobList:
         lib_groups = self._extract_elf_groups(all_file_paths, ["lib/", "lib64/"])
         all_blobs = self._extract_blobs(all_file_paths, [])
 
-        self._blobs = executable_blobs + lib_groups + all_blobs
+        blobs = executable_blobs + lib_groups + all_blobs
 
         # Figure out non-elf dependencies
-        self._adopt_blobs(self._blobs, all_blobs)
+        self._adopt_blobs(blobs, all_blobs)
 
         # Figure out elf dependencies
-        self._adopt_blobs(self._blobs, lib_groups)
+        self._adopt_blobs(blobs, lib_groups)
+
+        self._blobs = executable_blobs + lib_groups + all_blobs
 
     @staticmethod
     def _read_modules():
