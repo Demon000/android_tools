@@ -46,16 +46,14 @@ class CommonBlobInterface:
         return True
 
     def get_blob_list(self):
-        # Get the target arches of top-most blob
-        target_arches = self.get_arches()
-
         # Unpack ELFGroups
-        packed_blobs = [self] + self._blobs
         unpacked_blobs = []
-        for blob in packed_blobs:
+        for blob in self._blobs:
             contained_blobs = blob.get_contained_blobs()
             unpacked_blobs.extend(contained_blobs)
 
+        # Get the target arches of top-most blob
+        target_arches = self.get_arches()
         if not target_arches:
             return unpacked_blobs
 
@@ -103,6 +101,9 @@ class Blob(CommonBlobInterface):
     def is_matching_arch(self, arches):
         return True
 
+    def set_blobs(self, blobs):
+        self._blobs = blobs
+
 
 class ELFBlob(Blob):
     def __init__(self, dir_path, path):
@@ -131,6 +132,9 @@ class ELFGroup(CommonBlobInterface):
         return self._arches
 
     def get_contained_blobs(self):
+        for blob in self._contained_blobs:
+            blob.set_blobs(self._blobs)
+
         return self._contained_blobs
 
     def get_blob(self):
