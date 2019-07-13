@@ -15,13 +15,13 @@ class BlobList:
 
         executable_blobs = self._extract_elf_blobs(all_file_paths, ["bin/"])
         lib_groups = self._extract_elf_groups(all_file_paths, ["lib/", "lib64/"])
-        all_blobs = self._extract_blobs(all_file_paths, [])
+        other_blobs = self._extract_blobs(all_file_paths, [])
 
-        blobs = executable_blobs + lib_groups + all_blobs
+        blobs = executable_blobs + lib_groups + other_blobs
         adopted_blobs = []
 
         # Figure out non-elf dependencies
-        current_adopted_blobs = self._adopt_blobs(blobs, all_blobs)
+        current_adopted_blobs = self._adopt_blobs(blobs, other_blobs)
         adopted_blobs.extend(current_adopted_blobs)
 
         # Figure out elf dependencies
