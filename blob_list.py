@@ -29,7 +29,10 @@ class BlobList:
         adopted_blobs.extend(current_adopted_blobs)
 
         for adopted_blob in adopted_blobs:
-            blobs.remove(adopted_blob)
+            try:
+                blobs.remove(adopted_blob)
+            except:
+                pass
 
         self._blobs = blobs
 
