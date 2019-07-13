@@ -209,6 +209,10 @@ class BlobList:
         Args:
             target_blobs (list): The list of blobs to adopt into.
             source_blobs (list): The list of blobs to adopt from.
+
+        Returns:
+            list: A list of all the blobs that were adopted by at least
+                    one other blob.
         """
         adopted_blobs = []
 
