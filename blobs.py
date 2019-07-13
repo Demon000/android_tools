@@ -9,7 +9,7 @@ class CommonBlobInterface:
 
     def _is_service_init_file(self, other):
         path = self.get_absolute_path()
-        if not path.startswith("bin/"):
+        if "/bin/" not in path:
             return False
 
         name = self.get_name()
