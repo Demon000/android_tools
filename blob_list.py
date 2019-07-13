@@ -232,27 +232,29 @@ class BlobList:
 
         return adopted_blobs
 
-    def _print_blob(self, visited_blobs, blob, depth, file):
+    def _print_blob(self, blob, visited_blobs, depth, file):
+        blob_path = blob.get_path()
+
         visited_blobs.append(blob)
 
         indent = "\t" * depth
-        blob_path = blob.get_path()
-        file.write("{} {}\n".format(indent, blob_path))
+        file.write(f"{indent}{blob_path}\n")
 
         blob_items = blob.get_blob_list()
         for blob_item in blob_items:
             if blob_item not in visited_blobs:
-                self._print_blob(visited_blobs, blob_item, depth + 1, file)
+                self._print_blob(blob_item, visited_blobs, depth + 1, file)
 
     def print_blob(self, blob, file):
-        visited_blobs = []
-
         blob_module_name = blob.get_module_name()
-        file.write("# {}\n".format(blob_module_name))
+        file.write(f"# {blob_module_name}\n")
 
-        blob_items = blob.get_blob_list()
+        blob_items = blob.get_contained_blobs()
         for blob_item in blob_items:
-            self._print_blob(visited_blobs, blob_item, 0, file)
+            visited_blobs = []
+            self._print_blob(blob_item, visited_blobs, 0, file)
+
+        file.write("\n")
 
     def print_blobs(self, file):
         for blob in self._blobs:
@@ -279,7 +281,7 @@ class BlobList:
                 continue
 
             module_names.sort()
-            file.write("# modules for {}\n".format(blob_name))
+            file.write(f"# modules for {blob_name}\n")
             string = "PRODUCT_PACKAGES += \\\n"
             for module_name in module_names[:-1]:
                 string += "\t" + module_name + " \\\n"
