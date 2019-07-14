@@ -234,7 +234,7 @@ class BlobList:
 
     def _print_blob(self, blob, visited_blobs, depth, file):
         blob_path = blob.get_path()
-        blob_module_name = blob.get_module_name()
+        blob_path = blob.get_path()
 
         visited_blobs.append(blob)
 
@@ -242,7 +242,7 @@ class BlobList:
         file.write(indent)
         file.write(blob_path)
 
-        source_available = blob_module_name in self.__modules
+        source_available = blob_path in self.__modules
         if source_available:
             file.write(" # source available")
 
