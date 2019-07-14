@@ -234,11 +234,19 @@ class BlobList:
 
     def _print_blob(self, blob, visited_blobs, depth, file):
         blob_path = blob.get_path()
+        blob_module_name = blob.get_module_name()
 
         visited_blobs.append(blob)
 
         indent = "\t" * depth
-        file.write(f"{indent}{blob_path}\n")
+        file.write(indent)
+        file.write(blob_path)
+
+        source_available = blob_module_name in self.__modules
+        if source_available:
+            file.write(" # source available")
+
+        file.write("\n")
 
         blob_items = blob.get_blob_list()
         for blob_item in blob_items:
@@ -247,7 +255,9 @@ class BlobList:
 
     def print_blob(self, blob, file):
         blob_module_name = blob.get_module_name()
-        file.write(f"# {blob_module_name}\n")
+        file.write("# ")
+        file.write(blob_module_name)
+        file.write("\n")
 
         blob_items = blob.get_contained_blobs()
         for blob_item in blob_items:
@@ -259,39 +269,6 @@ class BlobList:
     def print_blobs(self, file):
         for blob in self._blobs:
             self.print_blob(blob, file)
-
-    def print_modules(self, file):
-        for blob in self._blobs:
-            blob_name = blob.get_name()
-            blob_module_name = blob.get_module_name()
-
-            module_names = []
-            blob_list = blob.get_blob_list()
-            for blob_item in blob_list:
-                blob_item_module_name = blob_item.get_module_name()
-                if blob_item_module_name not in self.__modules:
-                    continue
-
-                if blob_item_module_name in module_names:
-                    continue
-
-                module_names.append(blob_item_module_name)
-
-            if not len(module_names):
-                continue
-
-            module_names.sort()
-            file.write(f"# modules for {blob_name}\n")
-            string = "PRODUCT_PACKAGES += \\\n"
-            for module_name in module_names[:-1]:
-                string += "\t" + module_name + " \\\n"
-
-            last_module_name = module_names[-1]
-            string += "\t" + last_module_name + "\n"
-
-            file.write(string)
-            file.write("\n")
-
 
 if len(sys.argv) < 2:
     print("not enough arguments!")
@@ -310,6 +287,3 @@ target_modules_path = os.path.join(target_path, "modules.mk")
 blob_list = BlobList(vendor_path)
 with open(target_proprietary_files_path, "w") as file:
     blob_list.print_blobs(file)
-
-with open(target_modules_path, "w") as file:
-    blob_list.print_modules(file)
