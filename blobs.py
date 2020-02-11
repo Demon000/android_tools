@@ -3,7 +3,7 @@ import os
 from utils import *
 
 
-class CommonBlobInterface:
+class GenericBlob:
     def __init__(self):
         self._blobs = []
 
@@ -67,7 +67,7 @@ class CommonBlobInterface:
         return final_blobs
 
 
-class Blob(CommonBlobInterface):
+class Blob(GenericBlob):
     def __init__(self, dir_path, path):
         super().__init__()
 
@@ -118,7 +118,7 @@ class ELFBlob(Blob):
         return self._arch in arches
 
 
-class ELFGroup(CommonBlobInterface):
+class ELFGroup(GenericBlob):
     def __init__(self, _, blobs):
         super().__init__()
 
