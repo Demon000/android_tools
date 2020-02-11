@@ -270,7 +270,7 @@ class BlobList:
         for blob in self._blobs:
             self.print_blob(blob, file)
 
-if len(sys.argv) < 2:
+if len(sys.argv) < 3:
     print("not enough arguments!")
     print("usage: blob_list.py <vendor_path> <target_path>")
     exit()
