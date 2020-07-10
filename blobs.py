@@ -7,19 +7,13 @@ class GenericBlob:
     def __init__(self):
         self._blobs = []
 
-    def _is_service_init_file(self, other):
-        path = self.get_absolute_path()
-        if "/bin/" not in path:
-            return False
+    def is_init_file(self):
+        return self.get_name().endswith(".rc")
 
-        name = self.get_name()
-        other_name = other.get_name()
-        if name + ".rc" == other.get_name():
-            return True
+    def is_service_file(self):
+        return "/bin/" in self.get_absolute_path()
 
-        return False
-
-    def _is_other_name_inside(self, other):
+    def is_other_name_inside(self, other):
         path = self.get_absolute_path()
         other_name = other.get_name()
 
@@ -29,10 +23,16 @@ class GenericBlob:
         return False
 
     def _is_needed_blob(self, other):
-        if self._is_service_init_file(other):
+        # No .rc file should be the head of the hierarchy
+        if self.is_init_file():
+            return False
+
+        # .rc files should be marked as dependencies if they contain this name
+        if self.is_service_file() and other.is_init_file() and \
+                other.is_other_name_inside(self):
             return True
 
-        if self._is_other_name_inside(other):
+        if self.is_other_name_inside(other):
             return True
 
         return False

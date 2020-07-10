@@ -1,6 +1,5 @@
-from string import printable
-
 data_map = {}
+
 
 def get_arch(path):
     elf_magic32 = b'\x7fELF\x01'
@@ -16,6 +15,7 @@ def get_arch(path):
         return "64"
 
     raise ValueError()
+
 
 def path_contains_string(path, string):
     binary_string = bytes(string, 'UTF-8')
