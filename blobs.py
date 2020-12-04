@@ -7,6 +7,15 @@ class GenericBlob:
     def __init__(self):
         self._blobs = []
 
+    def get_name(self):
+        raise NotImplementedError()
+
+    def get_absolute_path(self):
+        raise NotImplementedError()
+
+    def get_arches(self):
+        raise NotImplementedError()
+
     def is_init_file(self):
         return self.get_name().endswith(".rc")
 

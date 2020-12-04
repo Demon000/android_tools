@@ -289,12 +289,13 @@ if len(sys.argv) < 3:
 vendor_path = sys.argv[1]
 target_path = sys.argv[2]
 
-if not os.path.exists(target_path):
-    os.makedirs(target_path)
-
 target_proprietary_files_path = os.path.join(target_path, "proprietary_files.txt")
 target_modules_path = os.path.join(target_path, "modules.mk")
 
 blob_list = BlobList(vendor_path)
+
+if not os.path.exists(target_path):
+    os.makedirs(target_path)
+
 with open(target_proprietary_files_path, "w") as file:
     blob_list.print_blobs(file)

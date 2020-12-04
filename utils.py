@@ -3,7 +3,7 @@ data_map = {}
 
 def get_arch(path):
     elf_magic32 = b'\x7fELF\x01'
-    elf_magic64 =  b'\x7fELF\x02'
+    elf_magic64 = b'\x7fELF\x02'
 
     with open(path, "rb") as file:
         file_head = file.read(5)
