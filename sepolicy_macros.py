@@ -338,8 +338,8 @@ macros = [
 	Macro(
 		'vndbinder_use',
 		[
+			Match(['allow', '$1', 'vndbinder_device', 'chr_file'], equal=['rw_file_perms']),
 			Match(['allow', '$1', 'vndservicemanager', 'binder'], equal=['call', 'transfer']),
-			Match(['allow', 'vndservicemanager', '$1', 'binder'], equal=['call', 'transfer']),
 			Match(['allow', 'vndservicemanager', '$1', 'dir'], equal=['search']),
 			Match(['allow', 'vndservicemanager', '$1', 'file'], equal=['read', 'open', 'map']),
 			Match(['allow', 'vndservicemanager', '$1', 'process'], equal=['getattr']),
