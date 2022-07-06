@@ -90,7 +90,7 @@ def format_allowx(rule):
 
 def format_type(rule):
 	s = ', '.join(rule.varargs)
-	return '{} {} {};'.format(*rule.parts, s);
+	return '{} {}, {};'.format(*rule.parts, s);
 
 
 def format_attribute(rule):
