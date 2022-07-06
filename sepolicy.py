@@ -105,6 +105,10 @@ def format_typetransition(rule):
 	return 'type_transition {} {}:{} {}{};'.format(*rule.parts[1:4], rule.parts[l - 1], name);
 
 
+def format_noop(rule):
+	return ''
+
+
 keyword_format_fn = {
 	'allow': format_allow,
 	'allowx': format_allowx,
@@ -113,6 +117,7 @@ keyword_format_fn = {
 	'type': format_type,
 	'attribute': format_attribute,
 	'typetransition': format_typetransition,
+	'genfscon': format_noop,
 }
 
 
@@ -151,10 +156,13 @@ class Type:
 
 	def __str__(self):
 		s = ''
-		s += f'Type: {self.type_name}\n'
-		s += f'rules:\n'
+		s += f'{self.type_name}.te\n'
 		for rule in self.rules:
-			s += str(rule) + '\n'
+			sr = str(rule)
+			if sr == '':
+				continue
+
+			s += sr + '\n'
 		return s
 
 	def add_rule(self, rule):
