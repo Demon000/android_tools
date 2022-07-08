@@ -82,24 +82,36 @@ def format_macro(rule):
 	params_str = ', '.join(rule.parts[1:])
 	return f'{rule.parts[0]}({params_str})'
 
-def join_varargs(rule):
-	s = ' '.join(rule.varargs)
 
-	if len(rule.varargs) > 1:
+def sort_varargs(varargs):
+	if isinstance(varargs, set):
+		varargs = list(varargs)
+
+	varargs.sort()
+
+	return varargs
+
+
+def join_varargs(varargs):
+	s = ' '.join(varargs)
+
+	if len(varargs) > 1:
 		s = '{ ' + s + ' }'
 
 	return s
 
 def format_allow(rule):
-	return '{} {} {}:{} {};'.format(*rule.parts, join_varargs(rule));
+	varargs = sort_varargs(rule.varargs)
+	return '{} {} {}:{} {};'.format(*rule.parts, join_varargs(varargs));
 
 
 def format_allowx(rule):
-	return 'allowxperm {} {}:{} {} {};'.format(*rule.parts[1:], join_varargs(rule));
+	return 'allowxperm {} {}:{} {} {};'.format(*rule.parts[1:], join_varargs(rule.varargs));
 
 
 def format_type(rule):
-	s = ', '.join(rule.varargs)
+	varargs = sort_varargs(rule.varargs)
+	s = ', '.join(varargs)
 	return '{} {}, {};'.format(*rule.parts, s);
 
 
