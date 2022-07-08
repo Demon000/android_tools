@@ -76,7 +76,7 @@ neverallow_permission_macro_names = [
 ]
 
 
-def replace_permissions_macro(mld, macro, rule, matched_types):
+def replace_permissions_macro(mld, macro, rule, removed_rules, added_rules, matched_types):
 	match = macro.matches[0]
 	contains = match.contains
 	rule.varargs = rule.varargs.difference(contains)
@@ -98,36 +98,36 @@ for macro_name in neverallow_permission_macro_names:
 	neverallow_permission_macros.append(macro)
 
 
-def replace_named_macro(mld, macro, rules, matched_types):
+def replace_named_macro(mld, macro, rules, removed_rules, added_rules, matched_types):
 	for rule in rules:
-		mld.remove(rule)
+		removed_rules.append(rule)
 
 	rule = Rule([macro.name] + matched_types, [])
-	mld.add(rule)
+	added_rules.append(rule)
 
 
-def remove_rule(mld, macro, rule, matched_types):
-	mld.remove(rule)
+def remove_rule(mld, macro, rule, removed_rules, added_rules, matched_types):
+	removed_rules.append(rule)
 
 
-def remove_rules(mld, macro, rules, matched_types):
+def remove_rules(mld, macro, rules, removed_rules, added_rules, matched_types):
 	for rule in rules:
-		mld.remove(rule)
+		removed_rules.append(rule)
 
 
-def replace_typeattribute(mld, macro, rule, matched_types):
-	mld.remove(rule)
+def replace_typeattribute(mld, macro, rule, removed_rules, added_rules, matched_types):
+	removed_rules.append(rule)
 
 	rule = Rule([macro.name, rule.parts[1]])
-	mld.add(rule)
+	added_rules.append(rule)
 
 
-def replace_typeattribute_with_type(mld, macro, rules, matched_types):
+def replace_typeattribute_with_type(mld, macro, rules, removed_rules, added_rules, matched_types):
 	assert len(rules) == 1
 
 	rule = rules[0]
 
-	mld.remove(rule)
+	removed_rules.append(rule)
 
 	type = matched_types[0]
 	attr_type = matched_types[1]
@@ -135,12 +135,12 @@ def replace_typeattribute_with_type(mld, macro, rules, matched_types):
 	rule = mld.get_one(match_type)
 	if rule is None:
 		rule = Rule(['type', type])
-		mld.add(rule)
+		added_rules.append(rule)
 
 	rule.varargs.add(attr_type)
 
 
-def replace_typeattributeset_base_typeattr(mld, rule):
+def replace_typeattributeset_base_typeattr(mld, removed_rules, added_rules, rule):
 	try:
 		and_index = rule.varargs.index('and')
 	except ValueError:
@@ -173,23 +173,23 @@ def replace_typeattributeset_base_typeattr(mld, rule):
 	rules = mld.get(match)
 
 	for rule in rules:
-		mld.remove(rule)
+		removed_rules.append(rule)
 		for i in range(len(rule.parts)):
 			if rule.parts[i] == type:
 				rule.parts[i] = type_str
-		mld.add(rule)
+		added_rules.append(rule)
 
 
-def replace_typeattributeset(mld, macro, rule, matched_types):
-	mld.remove(rule)
+def replace_typeattributeset(mld, macro, rule, removed_rules, added_rules, matched_types):
+	removed_rules.append(rule)
 
 	if rule.parts[1].startswith('base_typeattr_'):
-		replace_typeattributeset_base_typeattr(mld, rule)
+		replace_typeattributeset_base_typeattr(mld, removed_rules, added_rules, rule)
 		return
 
 	for type in rule.varargs:
 		typeattribute_rule = Rule(['typeattribute', type, rule.parts[1]])
-		mld.add(typeattribute_rule)
+		added_rules.append(typeattribute_rule)
 
 
 def define_prop_macro(owner, scope):
@@ -250,7 +250,6 @@ macros = [
 		replace_fn=replace_typeattributeset,
 	),
 
-	# Normal macros follow
 	Macro(
 		'domain_trans',
 		[
@@ -338,18 +337,10 @@ macros = [
 		[
 			Match(['allow', '$1', '$2', 'property_service'], equal=['set']),
 			Match(['get_prop', '$1', '$2']),
+			Match(['unix_socket_connect', '$1', 'property', 'init']),
 		],
 		replace_fn=replace_named_macro,
 	),
-	# Will only appear once for all set_prop calls, remove it afterwards
-	Macro(
-		'remove set_prop common pieces',
-		[
-			Match(['unix_socket_connect', '$1', 'property', 'init']),
-		],
-		replace_fn=remove_rules,
-	),
-
 	Macro(
 		'binder_service',
 		[
@@ -441,27 +432,19 @@ macros = [
 		],
 		replace_fn=replace_named_macro,
 	),
-
 	Macro(
 		'hal_server_domain',
 		[
 			Match(['typeattribute', '$1', '$2_server']),
 			Match(['typeattribute', '$1', '$2']),
+			Match(['typeattribute', '$1', 'halserverdomain']),
 		],
 		replace_fn=replace_named_macro,
 	),
-	# Will only appear once for all hal_server_domain calls, remove it afterwards
-	Macro(
-		'remove hal_server_domain common pieces',
-		[
-			Match(['typeattribute', '$1', 'halserverdomain']),
-		],
-		replace_fn=remove_rules,
-	),
-
 	Macro(
 		'passthrough_hal_client_domain',
 		[
+			Match(['typeattribute', '$1', 'halclientdomain']),
 			Match(['typeattribute', '$1', '$2_client']),
 			Match(['typeattribute', '$1', '$2']),
 		],
@@ -470,20 +453,11 @@ macros = [
 	Macro(
 		'hal_client_domain',
 		[
+			Match(['typeattribute', '$1', 'halclientdomain']),
 			Match(['typeattribute', '$1', '$2_client']),
 		],
 		replace_fn=replace_named_macro,
 	),
-	# Will only appear once for all hal_client_domain or
-	# passthrough_hal_client_domain calls, remove it afterwards
-	Macro(
-		'remove hal_client_domain common pieces',
-		[
-			Match(['typeattribute', '$1', 'halclientdomain']),
-		],
-		replace_fn=remove_rules,
-	),
-
 	Macro(
 		'add_service',
 		[
@@ -492,24 +466,15 @@ macros = [
 		],
 		replace_fn=replace_named_macro,
 	),
-
 	Macro(
 		'add_hwservice',
 		[
 			Match(['allow', '$1', '$2', 'hwservice_manager'], equal=['add', 'find']),
+			Match(['allow', '$1', 'hidl_base_hwservice', 'hwservice_manager'], equal=['add']),
 			Match(['neverallow', '{ domain -$1 }', '$2', 'hwservice_manager'], equal=['add']),
 		],
 		replace_fn=replace_named_macro,
 	),
-	# Will only appear once for all add_hwservice calls, remove it afterwards
-	Macro(
-		'remove add_hwservice common pieces',
-		[
-			Match(['allow', '$1', 'hidl_base_hwservice', 'hwservice_manager'], equal=['add']),
-		],
-		replace_fn=remove_rules,
-	),
-
 	Macro(
 		'hal_attribute_service',
 		[
@@ -601,6 +566,8 @@ def match_and_replace_macro(mld, macro):
 	prev_partial_matched_types = []
 	new_partial_matched_types = []
 	fully_matched_types = []
+	removed_rules = []
+	added_rules = []
 
 	for match in macro.matches:
 		rules = mld.get(match)
@@ -608,7 +575,7 @@ def match_and_replace_macro(mld, macro):
 		for rule in rules:
 			if macro.max_index is None:
 				# No index tracking, just replace now
-				macro.replace_fn(mld, macro, rule, [])
+				macro.replace_fn(mld, macro, rule, removed_rules, added_rules, [])
 				continue
 
 			rule_matched_types = match.extract_matched_indices(rule)
@@ -635,7 +602,13 @@ def match_and_replace_macro(mld, macro):
 		if missing:
 			continue
 
-		filled_macro.replace_fn(mld, filled_macro, matched_rules, m)
+		filled_macro.replace_fn(mld, filled_macro, matched_rules, removed_rules, added_rules, m)
+
+	for rule in removed_rules:
+		mld.remove(rule)
+
+	for rule in added_rules:
+		mld.add(rule)
 
 
 def match_and_replace_macros(mld):
