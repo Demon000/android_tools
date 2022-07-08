@@ -115,6 +115,10 @@ def format_typetransition(rule):
 	return 'type_transition {} {}:{} {}{};'.format(*rule.parts[1:4], rule.parts[l - 1], name);
 
 
+def format_permissive(rule):
+	return 'permissive {};'.format(rule.parts[1])
+
+
 def format_noop(rule):
 	return ''
 
@@ -128,6 +132,7 @@ keyword_format_fn = {
 	'attribute': format_attribute,
 	'typetransition': format_typetransition,
 	'genfscon': format_noop,
+	'typepermissive': format_permissive,
 }
 
 
