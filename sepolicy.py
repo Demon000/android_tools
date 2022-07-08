@@ -75,6 +75,7 @@ def extract_type(type):
 	type = re.sub('_client$', '', type)
 	type = re.sub('_server$', '', type)
 	type = re.sub('_default$', '', type)
+	type = re.sub('_hwservice$', '', type)
 	type = re.sub('_qti$', '', type)
 	return type
 
