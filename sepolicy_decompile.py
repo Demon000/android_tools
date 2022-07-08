@@ -36,6 +36,9 @@ for line in lines:
 
 	parts = clean_line.split(' ')
 
+	if len(parts) == 1 and parts[0] == '':
+		continue
+
 	parts = [sanitize_type(part) for part in parts]
 
 	rule = Rule(parts)
