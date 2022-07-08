@@ -49,7 +49,7 @@ def keep_varargs_order(parts):
 
 
 def split_varargs(parts):
-	index = keyword_varargs_index.get(parts[0], 1)
+	index = keyword_varargs_index.get(parts[0], 2)
 
 	if callable(index):
 		index = index(parts)
