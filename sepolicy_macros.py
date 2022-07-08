@@ -126,19 +126,30 @@ def replace_typeattribute_with_type(mld, macro, rules, matched_types):
 
 
 def replace_typeattributeset_base_typeattr(mld, rule):
-	and_index = rule.varargs.index('and')
-	assert and_index == 0
+	try:
+		and_index = rule.varargs.index('and')
+	except ValueError:
+		and_index = 0
 
-	not_index = rule.varargs.index('not')
+	try:
+		not_index = rule.varargs.index('not')
+	except ValueError:
+		not_index = 0
 
 	and_tokens = rule.varargs[and_index + 1:not_index]
 	not_tokens = rule.varargs[not_index + 1:]
 
 	type_str = ''
-	type_str += '{ '
-	type_str += ' '.join(and_tokens)
-	type_str += ' -'
-	type_str += ' -'.join(not_tokens)
+	type_str += '{'
+
+	if and_tokens:
+		type_str += ' '
+		type_str += ' '.join(and_tokens)
+
+	if not_tokens:
+		type_str += ' -'
+		type_str += ' -'.join(not_tokens)
+
 	type_str += ' }'
 
 	type = rule.parts[1]
