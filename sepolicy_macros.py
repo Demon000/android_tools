@@ -190,6 +190,15 @@ macros = [
 		replace_fn=remove_rule,
 	),
 
+	# Will be recreated based on leftover typeattributes
+	Macro(
+		'remove type',
+		[
+			Match(['type']),
+		],
+		replace_fn=remove_rule,
+	),
+
 	Macro(
 		'remove base_typeattr_ attribute leftovers',
 		[
