@@ -50,7 +50,7 @@ rules = mld.get(match)
 types = {}
 
 for rule in rules:
-	type_name = rule.main_type
+	type_name = extract_type(rule.main_type)
 
 	if type_name not in types:
 		types[type_name] = Type(type_name)

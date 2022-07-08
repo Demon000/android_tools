@@ -68,6 +68,16 @@ def sanitize_type(type):
 	return type
 
 
+def extract_type(type):
+	type = re.sub('^vendor_', '', type)
+	type = re.sub('_exec$', '', type)
+	type = re.sub('_client$', '', type)
+	type = re.sub('_server$', '', type)
+	type = re.sub('_default$', '', type)
+	type = re.sub('_qti$', '', type)
+	return type
+
+
 def format_macro(rule):
 	params_str = ', '.join(rule.parts[1:])
 	return f'{rule.parts[0]}({params_str})'
