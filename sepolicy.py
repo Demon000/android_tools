@@ -41,6 +41,7 @@ keyword_varargs_index = {
 
 keyword_varargs_keep_order = {
 	'typeattributeset': True,
+	'allowx': True,
 }
 
 
