@@ -143,9 +143,6 @@ def replace_typeattributeset_base_typeattr(mld, rule):
 
 	type = rule.parts[1]
 
-	if type == 'base_typeattr_214':
-		print(type)
-
 	match = Match(parts_contains=[type])
 	rules = mld.get(match)
 
