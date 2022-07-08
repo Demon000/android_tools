@@ -76,6 +76,21 @@ neverallow_permission_macro_names = [
 ]
 
 
+allow_permission_macros = []
+for macro_name in allow_permission_macro_names:
+	subset = globals()[macro_name]
+	match = Match(['allow'], contains=subset)
+	macro = Macro(macro_name, match, replace_permissions_macro)
+	allow_permission_macros.append(macro)
+
+neverallow_permission_macros = []
+for macro_name in neverallow_permission_macro_names:
+	subset = globals()[macro_name]
+	match = Match(['neverallow'], contains=subset)
+	macro = Macro(macro_name, match, replace_permissions_macro)
+	neverallow_permission_macros.append(macro)
+
+
 def replace_permissions_macro(mld, macro, rule, matched_types):
 	match = macro.matches[0]
 	contains = match.contains
@@ -214,6 +229,9 @@ macros = [
 		],
 		replace_fn=remove_rules,
 	),
+
+	*allow_permission_macros,
+	*neverallow_permission_macros,
 
 	# Rename typeattribute to attribute to match written sepolicy
 	Macro(
@@ -529,25 +547,6 @@ macros = [
 		replace_fn=replace_typeattribute_with_type,
 	),
 ]
-
-
-allow_permission_macros = []
-for macro_name in allow_permission_macro_names:
-	subset = globals()[macro_name]
-	match = Match(['allow'], contains=subset)
-	macro = Macro(macro_name, match, replace_permissions_macro)
-	allow_permission_macros.append(macro)
-
-macros = allow_permission_macros + macros
-
-neverallow_permission_macros = []
-for macro_name in neverallow_permission_macro_names:
-	subset = globals()[macro_name]
-	match = Match(['neverallow'], contains=subset)
-	macro = Macro(macro_name, match, replace_permissions_macro)
-	neverallow_permission_macros.append(macro)
-
-macros = neverallow_permission_macros + macros
 
 
 def add_matched_types(prev_partial_matched_types, new_partial_matched_types, fully_matched_types, matched_types):
