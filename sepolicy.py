@@ -153,7 +153,6 @@ class Rule:
 	def __str__(self):
 		return format_rule(self)
 
-
 	def __eq__(self, other):
 		return self.parts == other.parts and self.varargs == other.varargs
 
@@ -161,7 +160,6 @@ class Rule:
 class Type:
 	def __init__(self, type_name):
 		self.type_name = type_name
-		self.mld = MultiLevelDict()
 		self.rules = []
 
 	def __str__(self):
@@ -176,13 +174,4 @@ class Type:
 		return s
 
 	def add_rule(self, rule):
-		self.mld.add(rule)
 		self.rules.append(rule)
-
-	def get_matching(self, match):
-		return self.mld.get(match)
-
-	def reconstruct(self):
-		self.mld = MultiLevelDict()
-		for rule in rules:
-			self.mld.add(rule)
