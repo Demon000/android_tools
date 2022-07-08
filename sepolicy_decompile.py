@@ -59,49 +59,6 @@ for rule in rules:
 
 	type.add_rule(rule)
 
-removed_types = {}
-for type_name in types:
-	if type_name in removed_types:
-		continue
-
-	type = types[type_name]
-
-	match = Match(parts_contains=[type_name])
-	rules = mld.get(match)
-	main_type_name = None
-
-	for rule in rules:
-		other_type_name = extract_type(rule.main_type)
-		if other_type_name == type_name:
-			continue
-
-		if main_type_name is None:
-			main_type_name = other_type_name
-
-		if other_type_name != main_type_name:
-			main_type_name = None
-			break
-
-	if main_type_name is None:
-		continue
-
-	if main_type_name in removed_types:
-		continue
-
-	main_type = types[main_type_name]
-
-	if len(type.rules) >= len(main_type.rules):
-		continue
-
-	print(f'Merging {type_name} into {main_type_name}')
-
-	removed_types[type_name] = True
-
-	for rule in type.rules:
-		main_type.add_rule(rule)
-
-for type_name in removed_types:
-	types.pop(type_name)
 
 for type_name in types:
 	file_name = f'{type_name}.te'
