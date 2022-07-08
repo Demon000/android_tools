@@ -181,6 +181,7 @@ def define_prop_macro(owner, scope):
 	)
 
 macros = [
+	# Not used for anything
 	Macro(
 		'remove roletype',
 		[
