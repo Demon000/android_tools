@@ -78,8 +78,8 @@ neverallow_permission_macro_names = [
 
 def replace_permissions_macro(mld, macro, rule, matched_types):
 	match = macro.matches[0]
-	equal = match.equal
-	rule.varargs = rule.varargs.difference(equal)
+	contains = match.contains
+	rule.varargs = rule.varargs.difference(contains)
 	rule.varargs.add(macro.name)
 
 
@@ -516,7 +516,7 @@ macros = [
 allow_permission_macros = []
 for macro_name in allow_permission_macro_names:
 	subset = globals()[macro_name]
-	match = Match(['allow'], equal=subset)
+	match = Match(['allow'], contains=subset)
 	macro = Macro(macro_name, match, replace_permissions_macro)
 	allow_permission_macros.append(macro)
 
@@ -525,7 +525,7 @@ macros = allow_permission_macros + macros
 neverallow_permission_macros = []
 for macro_name in neverallow_permission_macro_names:
 	subset = globals()[macro_name]
-	match = Match(['neverallow'], equal=subset)
+	match = Match(['neverallow'], contains=subset)
 	macro = Macro(macro_name, match, replace_permissions_macro)
 	neverallow_permission_macros.append(macro)
 
