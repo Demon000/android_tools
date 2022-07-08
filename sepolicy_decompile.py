@@ -59,7 +59,6 @@ for rule in rules:
 
 	type.add_rule(rule)
 
-
 for type_name in types:
 	file_name = f'{type_name}.te'
 
