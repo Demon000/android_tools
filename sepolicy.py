@@ -64,7 +64,7 @@ def parts_main_type(parts):
 
 
 def sanitize_type(type):
-	type = re.sub('_30_0$', '', type)
+	type = re.sub('_\d+_0$', '', type)
 	return type
 
 
