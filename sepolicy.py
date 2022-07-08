@@ -162,16 +162,5 @@ class Type:
 		self.type_name = type_name
 		self.rules = []
 
-	def __str__(self):
-		s = ''
-		s += f'{self.type_name}.te\n'
-		for rule in self.rules:
-			sr = str(rule)
-			if sr == '':
-				continue
-
-			s += sr + '\n'
-		return s
-
 	def add_rule(self, rule):
 		self.rules.append(rule)

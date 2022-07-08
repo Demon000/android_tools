@@ -59,5 +59,18 @@ for rule in rules:
 
 	type.add_rule(rule)
 
+
 for type_name in types:
-	print(types[type_name])
+	file_name = f'{type_name}.te'
+
+	type = types[type_name]
+
+	path = os.path.join(OUTPUT_PATH, file_name)
+	with open(path, "w") as file:
+		for rule in type.rules:
+			s = str(rule)
+			if s == '':
+				continue
+
+			file.write(str(rule))
+			file.write('\n');
