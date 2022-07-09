@@ -142,4 +142,4 @@ class Match:
 
 			new_parts[i] = new_parts[i].format(matched_indices[index])
 
-		return Match(new_parts, self.contains, self.equal)
+		return Match(new_parts, self.parts_contains, self.contains, self.equal)
