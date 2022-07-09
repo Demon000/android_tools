@@ -141,6 +141,10 @@ class Match:
 			if index is None:
 				continue
 
-			new_parts[i] = new_parts[i].format(matched_indices[index])
+			if index >= len(matched_indices):
+				continue
+
+			match_type = matched_indices[index]
+			new_parts[i] = new_parts[i].format(match_type)
 
 		return Match(new_parts, self.parts_contains, self.contains, self.equal)
