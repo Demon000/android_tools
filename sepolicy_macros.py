@@ -181,7 +181,6 @@ def replace_typeattributeset_base_typeattr(mld, match_result):
 	replace_result = MacroReplaceResult()
 
 	rules = match_result.rules
-	matched_types = match_result.types
 
 	assert len(rules) == 1
 
@@ -213,7 +212,7 @@ def replace_typeattributeset_base_typeattr(mld, match_result):
 
 	type_str += ' }'
 
-	type = matched_types[0]
+	type = rule.parts[1]
 
 	replace_result.removed.append(rule)
 
