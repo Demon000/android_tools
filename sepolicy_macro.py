@@ -40,7 +40,28 @@ class MacroMatchResult:
 		self.rules = rules
 		self.types = types
 
+	def __str__(self):
+		s = ''
+		s += f'MatchResult:\n'
+		s += f'filled_macro: {self.filled_macro}\n'
+		s += f'types: {self.types}\n'
+		s += f'rules:\n'
+		for rule in self.rules:
+			s += str(rule) + '\n'
+		return s
+
 class MacroReplaceResult:
 	def __init__(self, added=[], removed=[]):
 		self.added = added
 		self.removed = removed
+
+	def __str__(self):
+		s = ''
+		s += f'ReplaceResult:\n'
+		s += f'removed:\n'
+		for rule in self.removed:
+			s += str(rule) + '\n'
+		s += f'added:\n'
+		for rule in self.added:
+			s += str(rule) + '\n'
+		return s
