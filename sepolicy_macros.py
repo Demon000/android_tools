@@ -226,6 +226,8 @@ def replace_typeattributeset_base_typeattr(mld, match_result):
 
 	type = rule.parts[1]
 
+	replace_result.removed.append(rule)
+
 	match = Match(parts_contains=[type])
 	rules = mld.get(match)
 
