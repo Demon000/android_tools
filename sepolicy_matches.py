@@ -54,6 +54,16 @@ class Match:
 		elif parts_contains is not None:
 			self.parts_contains = parts_contains
 
+	def __str__(self):
+		s = ''
+		s += f'Match:\n'
+		s += f'is_fully_filled: {self.is_fully_filled()}\n'
+		s += f'parts: {self.parts}\n'
+		s += f'parts_contains: {self.parts_contains}\n'
+		s += f'contains: {self.contains}\n'
+		s += f'equal: {self.equal}\n'
+		return s
+
 	def parse_match(self, match_part, rule_part):
 		result = parse.parse(match_part, rule_part)
 		if result is None:

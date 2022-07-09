@@ -13,6 +13,16 @@ class Macro:
 					match.max_index > self.max_index):
 				self.max_index = match.max_index
 
+	def __str__(self):
+		s = ''
+		s += f'Macro:\n'
+		s += f'name: {self.name}\n'
+		s += f'is_fully_filled: {self.is_fully_filled()}\n'
+		s += f'matches:\n'
+		for match in self.matches:
+			s += str(match)
+		return s
+
 	def fill_matched_indices(self, matched_indices):
 		matches = []
 
