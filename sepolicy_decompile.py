@@ -29,8 +29,8 @@ mld = MultiLevelDict()
 
 for line in lines:
 	clean_line = line.replace('(', '') \
-			 .replace(')', '') \
-			 .replace('\n', '')
+		.replace(')', '') \
+		.replace('\n', '')
 
 	parts = clean_line.split(' ')
 
