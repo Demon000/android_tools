@@ -233,9 +233,14 @@ def replace_typeattributeset_base_typeattr(mld, match_result):
 
 	for rule in rules:
 		replace_result.removed.append(rule)
-		for i in range(len(rule.parts)):
-			if rule.parts[i] == type:
-				rule.parts[i] = type_str
+		new_parts = []
+		for part in rule.parts:
+			if part == type:
+				part = type_str
+
+			new_parts.append(part)
+
+		rule = Rule(new_parts, rule.varargs)
 		replace_result.added.append(rule)
 
 	return replace_result
