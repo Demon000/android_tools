@@ -22,8 +22,6 @@ print(f'output: {OUTPUT_PATH}')
 
 os.makedirs(OUTPUT_PATH, exist_ok=True)
 
-lines = []
-
 with open(VENDOR_CIL_FILE_PATH) as f:
 	lines = f.readlines()
 
