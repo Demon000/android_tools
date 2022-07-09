@@ -337,9 +337,17 @@ macros = [
 		[
 			Match(['allow', '$1', '$2', 'property_service'], equal=['set']),
 			Match(['get_prop', '$1', '$2']),
-			Match(['unix_socket_connect', '$1', 'property', 'init']),
 		],
 		replace_fn=replace_named_macro,
+	),
+	# Some set_prop rules are in system sepolicy for some types,
+	# in which case unix_socket_connect won't appear in vendor for some domains
+	Macro(
+		'remove set_prop common pieces',
+		[
+			Match(['unix_socket_connect', '$1', 'property', 'init']),
+		],
+		replace_fn=remove_rules,
 	),
 	Macro(
 		'binder_service',
