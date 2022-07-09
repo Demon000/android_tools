@@ -24,7 +24,7 @@ def extract_index(part):
 class Match:
 	def __init__(self, parts=None, parts_contains=None, contains=None, equal=None):
 		self.match_indices = []
-		self.max_index = None
+		self.max_index = -1
 		self.contains = None
 		self.equal = None
 		self.parts = None
@@ -44,9 +44,7 @@ class Match:
 				part = parts[i]
 				part, index = extract_index(part)
 
-				if index is not None and \
-					(self.max_index is None or \
-						index > self.max_index):
+				if index is not None and index > self.max_index:
 					self.max_index = index
 
 				self.match_indices.append(index)
@@ -63,6 +61,9 @@ class Match:
 		s += f'contains: {self.contains}\n'
 		s += f'equal: {self.equal}\n'
 		return s
+
+	def is_fully_filled(self):
+		return self.max_index == -1
 
 	def parse_match(self, match_part, rule_part):
 		result = parse.parse(match_part, rule_part)
@@ -110,13 +111,10 @@ class Match:
 	def extract_matched_indices(self, rule):
 		assert self.parts is not None
 
-		matched_indices = None
-
-		if self.max_index is None:
+		matched_indices = [None] * (self.max_index + 1)
+		if not matched_indices:
 			return matched_indices
 
-		matched_indices = [None] * (self.max_index + 1)
- 
 		for i in range(self.parts_len):
 			rule_part = rule.parts[i]
 			match_part = self.parts[i]
@@ -131,6 +129,9 @@ class Match:
 		return matched_indices
 
 	def fill_matched_indices(self, matched_indices):
+		if not matched_indices:
+			return self
+
 		assert self.parts is not None
 
 		new_parts = self.parts[:]

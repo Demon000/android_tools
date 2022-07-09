@@ -5,12 +5,11 @@ class Macro:
 			matches = [matches]
 		self.matches = matches
 		self.replace_fn = replace_fn
-		self.max_index = None
+		self.max_index = -1
 
 		for match in matches:
 			if match.max_index is not None and \
-				(self.max_index is None or \
-					match.max_index > self.max_index):
+				match.max_index > self.max_index:
 				self.max_index = match.max_index
 
 	def __str__(self):
@@ -22,6 +21,9 @@ class Macro:
 		for match in self.matches:
 			s += str(match)
 		return s
+
+	def is_fully_filled(self):
+		return self.max_index == -1
 
 	def fill_matched_indices(self, matched_indices):
 		matches = []
