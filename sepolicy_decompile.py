@@ -3,11 +3,7 @@
 import sys
 import os
 
-from sepolicy import *
-from sepolicy_macros import *
-from sepolicy_mld import *
-
-VENDOR_CIL_FILE = 'vendor_sepolicy.cil'
+from sepolicy_decompiler import *
 
 if len(sys.argv) < 3:
 	print(f'usage: {sys.argv[0]} <selinux_dir> <output_dir>')
@@ -15,62 +11,25 @@ if len(sys.argv) < 3:
 
 SELINUX_PATH = sys.argv[1]
 OUTPUT_PATH = sys.argv[2]
-VENDOR_CIL_FILE_PATH = os.path.join(SELINUX_PATH, VENDOR_CIL_FILE)
 
-print(f'{VENDOR_CIL_FILE}: {VENDOR_CIL_FILE_PATH}')
-print(f'output: {OUTPUT_PATH}')
+VENDOR_CIL_FILE = 'vendor_sepolicy.cil'
+VENDOR_CIL_PATH = os.path.join(SELINUX_PATH, VENDOR_CIL_FILE)
 
-os.makedirs(OUTPUT_PATH, exist_ok=True)
+PLAT_PUB_CIL_FILE = 'plat_pub_versioned.cil'
+PLAT_PUB_CIL_PATH = os.path.join(SELINUX_PATH, PLAT_PUB_CIL_FILE)
 
-with open(VENDOR_CIL_FILE_PATH) as f:
-	lines = f.readlines()
+VENDOR_PROPERTY_CONTEXTS_FILE = 'vendor_property_contexts'
+VENDOR_PROPERTY_CONTEXTS_PATH = os.path.join(SELINUX_PATH, VENDOR_PROPERTY_CONTEXTS_FILE)
 
-mld = MultiLevelDict()
+VENDOR_FILE_CONTEXTS_FILE = 'vendor_file_contexts'
+VENDOR_FILE_CONTEXTS_PATH = os.path.join(SELINUX_PATH, VENDOR_FILE_CONTEXTS_FILE)
 
-for line in lines:
-	clean_line = line.replace('(', '') \
-		.replace(')', '') \
-		.replace('\n', '')
+decompiler = SepolicyDecompiler([PLAT_PUB_CIL_PATH, VENDOR_CIL_PATH],
+				VENDOR_PROPERTY_CONTEXTS_PATH,
+				VENDOR_FILE_CONTEXTS_PATH,
+				OUTPUT_PATH)
 
-	parts = clean_line.split(' ')
-
-	if len(parts) == 1 and parts[0] == '':
-		continue
-
-	parts = [sanitize_type(part) for part in parts]
-
-	rule = Rule(parts)
-
-	mld.add(rule)
-
-match_and_replace_macros(mld)
-
-match = Match([])
-rules = mld.get(match)
-
-types = {}
-
-for rule in rules:
-	type_name = extract_type(rule.main_type)
-
-	if type_name not in types:
-		types[type_name] = Type(type_name)
-
-	type = types[type_name]
-
-	type.add_rule(rule)
-
-for type_name in types:
-	file_name = f'{type_name}.te'
-
-	type = types[type_name]
-
-	path = os.path.join(OUTPUT_PATH, file_name)
-	with open(path, "w") as file:
-		for rule in type.rules:
-			s = str(rule)
-			if s == '':
-				continue
-
-			file.write(str(rule))
-			file.write('\n');
+decompiler.read_cils()
+decompiler.process_macros()
+decompiler.group_into_types()
+decompiler.output()
