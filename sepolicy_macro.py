@@ -33,3 +33,14 @@ class Macro:
 			matches.append(new_match)
 
 		return Macro(self.name, matches, self.replace_fn)
+
+class MacroMatchResult:
+	def __init__(self, filled_macro, rules, types):
+		self.filled_macro = filled_macro
+		self.rules = rules
+		self.types = types
+
+class MacroReplaceResult:
+	def __init__(self, added=[], removed=[]):
+		self.added = added
+		self.removed = removed

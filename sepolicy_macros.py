@@ -77,11 +77,19 @@ neverallow_permission_macro_names = [
 ]
 
 
-def replace_permissions_macro(mld, macro, rule, removed_rules, added_rules, matched_types):
+def replace_permissions_macro(mld, match_result):
+	rules = match_result.rules
+
+	assert len(rules) == 1
+
+	rule = rules[0]
+
 	match = macro.matches[0]
 	contains = match.contains
 	rule.varargs = rule.varargs.difference(contains)
 	rule.varargs.add(macro.name)
+
+	return None
 
 
 allow_permission_macros = []
@@ -99,49 +107,97 @@ for macro_name in neverallow_permission_macro_names:
 	neverallow_permission_macros.append(macro)
 
 
-def replace_named_macro(mld, macro, rules, removed_rules, added_rules, matched_types):
-	for rule in rules:
-		removed_rules.append(rule)
+def replace_named_macro(mld, match_result):
+	replace_result = MacroReplaceResult()
 
+	rules = match_result.rules
+
+	for rule in rules:
+		replace_result.removed.append(rule)
+
+	matched_types = match_result.types
 	rule = Rule([macro.name] + matched_types, [])
-	added_rules.append(rule)
+	replace_result.added.append(rule)
+
+	return replace_result
 
 
-def remove_rule(mld, macro, rule, removed_rules, added_rules, matched_types):
-	removed_rules.append(rule)
+def remove_rule(mld, match_result):
+	replace_result = MacroReplaceResult()
 
+	rules = match_result.rules
 
-def remove_rules(mld, macro, rules, removed_rules, added_rules, matched_types):
-	for rule in rules:
-		removed_rules.append(rule)
-
-
-def replace_typeattribute(mld, macro, rule, removed_rules, added_rules, matched_types):
-	removed_rules.append(rule)
-
-	rule = Rule([macro.name, rule.parts[1]])
-	added_rules.append(rule)
-
-
-def replace_typeattribute_with_type(mld, macro, rules, removed_rules, added_rules, matched_types):
 	assert len(rules) == 1
 
 	rule = rules[0]
 
-	removed_rules.append(rule)
+	replace_result.removed.append(rule)
 
+	return replace_result
+
+
+def remove_rules(mld, match_result):
+	replace_result = MacroReplaceResult()
+
+	rules = match_result.rules
+
+	for rule in rules:
+		replace_result.removed.append(rule)
+
+	return replace_result
+
+
+def replace_typeattribute(mld, match_result):
+	replace_result = MacroReplaceResult()
+
+	rules = match_result.rules
+
+	assert len(rules) == 1
+
+	rule = rules[0]
+
+	replace_result.removed.append(rule)
+
+	rule = Rule([macro.name, rule.parts[1]])
+	replace_result.added.append(rule)
+
+	return replace_result
+
+
+def replace_typeattribute_with_type(mld, match_result):
+	replace_result = MacroReplaceResult()
+
+	rules = match_result.rules
+
+	assert len(rules) == 1
+
+	rule = rules[0]
+
+	replace_result.removed.append(rule)
+
+	matched_types = match_result.types
 	type = matched_types[0]
 	attr_type = matched_types[1]
 	match_type = Match(['type', type])
 	rule = mld.get_one(match_type)
 	if rule is None:
 		rule = Rule(['type', type])
-		added_rules.append(rule)
+		replace_result.added.append(rule)
 
 	rule.varargs.add(attr_type)
 
+	return replace_result
 
-def replace_typeattributeset_base_typeattr(mld, removed_rules, added_rules, rule):
+
+def replace_typeattributeset_base_typeattr(mld, match_result):
+	replace_result = MacroReplaceResult()
+
+	rules = match_result.rules
+
+	assert len(rules) == 1
+
+	rule = rules[0]
+
 	try:
 		and_index = rule.varargs.index('and')
 	except ValueError:
@@ -174,23 +230,29 @@ def replace_typeattributeset_base_typeattr(mld, removed_rules, added_rules, rule
 	rules = mld.get(match)
 
 	for rule in rules:
-		removed_rules.append(rule)
+		replace_result.removed.append(rule)
 		for i in range(len(rule.parts)):
 			if rule.parts[i] == type:
 				rule.parts[i] = type_str
-		added_rules.append(rule)
+		replace_result.added.append(rule)
+
+	return replace_result
 
 
-def replace_typeattributeset(mld, macro, rule, removed_rules, added_rules, matched_types):
-	removed_rules.append(rule)
+def replace_typeattributeset(mld, match_result):
+	replace_result = MacroReplaceResult()
 
-	if rule.parts[1].startswith('base_typeattr_'):
-		replace_typeattributeset_base_typeattr(mld, removed_rules, added_rules, rule)
-		return
+	rules = match_result.rules
+
+	assert len(rules) == 1
+
+	rule = rules[0]
+
+	replace_result.removed.append(rule)
 
 	for type in rule.varargs:
 		typeattribute_rule = Rule(['typeattribute', type, rule.parts[1]])
-		added_rules.append(typeattribute_rule)
+		replace_result.added.append(rule)
 
 
 def define_prop_macro(owner, scope):
@@ -242,6 +304,14 @@ macros = [
 			Match(['typeattribute', '$1']),
 		],
 		replace_fn=replace_named_macro,
+	),
+
+	Macro(
+		'replace base_typeattr_ typeattributeset',
+		[
+			Match(['typeattributeset', 'base_typeattr_$1']),
+		],
+		replace_fn=replace_typeattributeset_base_typeattr,
 	),
 
 	Macro(
@@ -535,93 +605,72 @@ macros = [
 ]
 
 
-def add_matched_types(prev_partial_matched_types, new_partial_matched_types, fully_matched_types, matched_types):
-	new_merged_types = []
-
-	for m in prev_partial_matched_types:
-		if m == matched_types:
-			return
-
-		assert len(m) == len(matched_types)
-
-		merged_types = []
-		any_added = False
-		for i in range(len(m)):
-			original_type = m[i]
-			new_type = matched_types[i]
-
-			if original_type is not None and \
-				new_type is not None and \
-				original_type != new_type:
-				break
-
-			chosen_type = new_type or original_type
-			merged_types.append(chosen_type)
-
-		if len(merged_types) != len(m):
-			continue
-
-		new_merged_types.append(merged_types)
-
-	new_merged_types.append(matched_types)
-
-	for m in new_merged_types:
-		if None in m:
-			new_partial_matched_types.append(m)
-		else:
-			fully_matched_types.append(m)
-
 def extend_matched_types(macro, matched_types):
 	for i in range(len(matched_types), macro.max_index + 1):
 		matched_types.append(None)
 
-def match_and_replace_macro(mld, macro):
-	prev_partial_matched_types = []
-	new_partial_matched_types = []
-	fully_matched_types = []
-	removed_rules = []
-	added_rules = []
 
-	for match in macro.matches:
-		rules = mld.get(match)
+def merge_matched_types(old_matched_types, new_matched_types):
+	merged_matched_types = old_matched_types[:]
 
-		for rule in rules:
-			if macro.max_index is None:
-				# No index tracking, just replace now
-				macro.replace_fn(mld, macro, rule, removed_rules, added_rules, [])
-				continue
+	for i in range(len(new_matched_types)):
+		if old_matched_types[i] is None and \
+				new_matched_types[i] is not None:
+			merged_matched_types[i] = new_matched_types[i]
+		elif old_matched_types[i] is not None and \
+				new_matched_types[i] is not None:
+			return None
 
-			rule_matched_types = match.extract_matched_indices(rule)
-			extend_matched_types(macro, rule_matched_types)
-			add_matched_types(prev_partial_matched_types, new_partial_matched_types,
-				fully_matched_types, rule_matched_types)
+	return merged_matched_types
 
-		prev_partial_matched_types.extend(new_partial_matched_types)
-		new_partial_matched_types = []
 
-	for m in fully_matched_types:
-		filled_macro = macro.fill_matched_indices(m)
-		matched_rules = []
-		missing = False
+def match_macro_rules(mld, match_results, macro, index=0, rules=[], matched_types=[]):
+	extend_matched_types(macro, matched_types)
 
-		for match in filled_macro.matches:
-			rule = mld.get_one(match)
-			if rule is None:
-				missing = True
-				break
+	if index == len(macro.matches):
+		if macro.is_fully_filled:
+			match_result = MacroMatchResult(macro, rules, matched_types)
+			match_results.append(match_result)
 
-			matched_rules.append(rule)
+		return
 
-		if missing:
+	match = macro.matches[index]
+	matched_rules = mld.get(match)
+
+	for rule in matched_rules:
+		new_matched_types = match.extract_matched_indices(rule)
+		merged_matched_types = merge_matched_types(matched_types, new_matched_types)
+		if merged_matched_types is None:
 			continue
 
-		filled_macro.replace_fn(mld, filled_macro, matched_rules, removed_rules, added_rules, m)
+		new_macro = macro.fill_matched_indices(new_matched_types)
+		new_rules = rules[:] + [rule]
 
-	for rule in removed_rules:
-		mld.remove(rule)
+		match_macro_rules(mld, match_results, new_macro, index + 1,
+				  new_rules, merged_matched_types)
 
-	for rule in added_rules:
-		mld.add(rule)
+
+def match_and_replace_macro(mld, macro):
+	match_results = []
+
+	match_macro_rules(mld, match_results, macro)
+
+	replace_results = []
+
+	for match_result in match_results:
+		replace_result = macro.replace_fn(mld, match_result)
+		if replace_result is None:
+			continue
+
+		replace_results.append(replace_result)
+
+	for replace_result in replace_results:
+		for rule in replace_result.removed:
+			mld.remove(rule)
+
+	for replace_result in replace_results:
+		for rule in replace_result.added:
+			mld.remove(rule)
 
 
 def match_and_replace_macros(mld):
