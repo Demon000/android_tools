@@ -74,7 +74,17 @@ class SepolicyDecompiler:
 		for type_name in self.types:
 			self.output_type(type_name)
 
+	def output_property_contexts(self):
+		path = os.path.join(self.output_path, 'property_contexts')
+		shutil.copy(self.property_contexts_path, path)
+
+	def output_file_contexts(self):
+		path = os.path.join(self.output_path, 'file_contexts')
+		shutil.copy(self.file_contexts_path, path)
+
 	def output(self):
 		os.makedirs(self.output_path, exist_ok=True)
 
 		self.output_types()
+		self.output_property_contexts()
+		self.output_file_contexts()
