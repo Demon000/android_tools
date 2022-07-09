@@ -250,6 +250,8 @@ def replace_typeattributeset(mld, match_result):
 		typeattribute_rule = Rule(['typeattribute', type, rule.parts[1]])
 		replace_result.added.append(rule)
 
+	return replace_result
+
 
 def define_prop_macro(owner, scope):
 	return Macro(
