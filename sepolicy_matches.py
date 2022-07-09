@@ -27,6 +27,7 @@ class Match:
 		self.max_index = -1
 		self.contains = None
 		self.equal = None
+		self.original_parts = None
 		self.parts = None
 		self.parts_len = None
 		self.parts_contains = None
@@ -37,6 +38,7 @@ class Match:
 			self.equal = set(equal)
 
 		if parts is not None:
+			self.original_parts = parts
 			self.parts_len = len(parts)
 			self.parts = []
 
@@ -56,6 +58,7 @@ class Match:
 		s = ''
 		s += f'Match:\n'
 		s += f'is_fully_filled: {self.is_fully_filled()}\n'
+		s += f'original_parts: {self.original_parts}\n'
 		s += f'parts: {self.parts}\n'
 		s += f'parts_contains: {self.parts_contains}\n'
 		s += f'contains: {self.contains}\n'
@@ -134,7 +137,7 @@ class Match:
 
 		assert self.parts is not None
 
-		new_parts = self.parts[:]
+		new_parts = self.original_parts[:]
 
 		for i in range(self.parts_len):
 			index = self.match_indices[i]
@@ -145,6 +148,9 @@ class Match:
 				continue
 
 			match_type = matched_indices[index]
-			new_parts[i] = new_parts[i].format(match_type)
+			if match_type is None:
+				continue
+
+			new_parts[i] = self.parts[i].format(match_type)
 
 		return Match(new_parts, self.parts_contains, self.contains, self.equal)
