@@ -1,7 +1,4 @@
 import re
-import json
-
-from sepolicy_mld import *
 
 def typetransition_varargs_index(parts):
 	l = len(parts)
