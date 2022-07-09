@@ -111,11 +111,12 @@ def replace_named_macro(mld, match_result):
 	replace_result = MacroReplaceResult()
 
 	rules = match_result.rules
+	matched_types = match_result.types
+	macro = match_result.filled_macro
 
 	for rule in rules:
 		replace_result.removed.append(rule)
 
-	matched_types = match_result.types
 	rule = Rule([macro.name] + matched_types, [])
 	replace_result.added.append(rule)
 
@@ -137,6 +138,7 @@ def replace_typeattribute(mld, match_result):
 	replace_result = MacroReplaceResult()
 
 	rules = match_result.rules
+	macro = match_result.filled_macro
 
 	assert len(rules) == 1
 
@@ -609,7 +611,7 @@ def merge_matched_types(old_matched_types, new_matched_types):
 	return merged_matched_types
 
 
-def match_macro_rules(mld, match_results, macro, index=0, rules=[], matched_types=[]):
+def match_macro_rules(mld, match_results, macro, index, rules, matched_types):
 	extend_matched_types(macro, matched_types)
 
 	if index == len(macro.matches):
@@ -638,7 +640,7 @@ def match_macro_rules(mld, match_results, macro, index=0, rules=[], matched_type
 def match_and_replace_macro(mld, macro):
 	match_results = []
 
-	match_macro_rules(mld, match_results, macro)
+	match_macro_rules(mld, match_results, macro, 0, [], [])
 
 	replace_results = []
 
