@@ -51,9 +51,9 @@ class MacroMatchResult:
 		return s
 
 class MacroReplaceResult:
-	def __init__(self, added=[], removed=[]):
-		self.added = added
-		self.removed = removed
+	def __init__(self):
+		self.added = []
+		self.removed = []
 
 	def __str__(self):
 		s = ''
