@@ -672,7 +672,7 @@ def match_and_replace_macro(mld, macro):
 
 	for replace_result in replace_results:
 		for rule in replace_result.added:
-			mld.remove(rule)
+			mld.add(rule)
 
 
 def match_and_replace_macros(mld):
