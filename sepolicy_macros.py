@@ -122,20 +122,6 @@ def replace_named_macro(mld, match_result):
 	return replace_result
 
 
-def remove_rule(mld, match_result):
-	replace_result = MacroReplaceResult()
-
-	rules = match_result.rules
-
-	assert len(rules) == 1
-
-	rule = rules[0]
-
-	replace_result.removed.append(rule)
-
-	return replace_result
-
-
 def remove_rules(mld, match_result):
 	replace_result = MacroReplaceResult()
 
@@ -281,7 +267,7 @@ macros = [
 		[
 			Match(['roletype']),
 		],
-		replace_fn=remove_rule,
+		replace_fn=remove_rules,
 	),
 
 	# Will be recreated based on leftover typeattributes
@@ -290,7 +276,7 @@ macros = [
 		[
 			Match(['type']),
 		],
-		replace_fn=remove_rule,
+		replace_fn=remove_rules,
 	),
 
 	Macro(
