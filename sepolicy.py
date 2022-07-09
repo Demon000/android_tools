@@ -1,5 +1,6 @@
 import re
 
+
 def typetransition_varargs_index(parts):
 	l = len(parts)
 	if l == 6 or l == 5:
@@ -20,7 +21,6 @@ keyword_parts_main_type = {
 	'genfscon': 5,
 }
 
-
 keyword_varargs_index = {
 	'allow': 4,
 	'allowx': 5,
@@ -34,7 +34,6 @@ keyword_varargs_index = {
 	'typetransition': typetransition_varargs_index,
 	'attribute': 2,
 }
-
 
 keyword_varargs_keep_order = {
 	'typeattributeset': True,
@@ -99,6 +98,7 @@ def join_varargs(varargs):
 
 	return s
 
+
 def format_allow(rule):
 	varargs = sort_varargs(rule.varargs)
 	return '{} {} {}:{} {};'.format(*rule.parts, join_varargs(varargs));
@@ -116,6 +116,7 @@ def format_type(rule):
 
 def format_attribute(rule):
 	return '{} {};'.format(*rule.parts)
+
 
 def format_typetransition(rule):
 	l = len(rule.parts)
@@ -153,6 +154,7 @@ def format_rule(rule):
 		return keyword_format_fn[keyword](rule)
 
 	return format_macro(rule)
+
 
 class Rule:
 	def __init__(self, parts, varargs=None):
