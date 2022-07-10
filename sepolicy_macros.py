@@ -111,11 +111,15 @@ def replace_named_macro(mld, match_result):
 	rules = match_result.rules
 	matched_types = match_result.types
 	macro = match_result.filled_macro
+	main_type = None
 
 	for rule in rules:
+		if rule.parts[1] == matched_types[0]:
+			main_type = rule.main_type
+
 		replace_result.removed.append(rule)
 
-	rule = Rule([macro.name] + matched_types, [])
+	rule = Rule([macro.name] + matched_types, [], main_type=main_type)
 	replace_result.added.append(rule)
 
 	return replace_result
