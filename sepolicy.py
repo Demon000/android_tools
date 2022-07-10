@@ -157,16 +157,19 @@ def format_rule(rule):
 
 
 class Rule:
-	def __init__(self, parts, varargs=None):
+	def __init__(self, parts, varargs=None, main_type=None):
 		if varargs is None:
 			parts, varargs = split_varargs(parts)
 
 		if not isinstance(varargs, set) and not keep_varargs_order(parts):
 			varargs = set(varargs)
 
+		if main_type is None:
+			main_type = parts_main_type(parts)
+
 		self.parts = parts
 		self.varargs = varargs
-		self.main_type = parts_main_type(parts)
+		self.main_type = main_type
 
 	def __str__(self):
 		return format_rule(self)

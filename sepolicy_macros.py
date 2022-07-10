@@ -224,7 +224,7 @@ def replace_typeattributeset_base_typeattr(mld, match_result):
 
 			new_parts.append(part)
 
-		new_rule = Rule(new_parts, rule.varargs)
+		new_rule = Rule(new_parts, rule.varargs, main_type=type)
 		mld.add(new_rule)
 
 def replace_typeattributeset(mld, match_result):
