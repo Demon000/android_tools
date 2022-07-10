@@ -24,6 +24,7 @@ keyword_parts_main_type = {
 keyword_varargs_index = {
 	'allow': 4,
 	'allowx': 5,
+	'neverallowx': 5,
 	'dontaudit': 4,
 	'genfscon': 8,
 	'neverallow': 4,
@@ -38,6 +39,7 @@ keyword_varargs_index = {
 keyword_varargs_keep_order = {
 	'typeattributeset': True,
 	'allowx': True,
+	'neverallowx': True,
 }
 
 
@@ -105,7 +107,12 @@ def format_allow(rule):
 
 
 def format_allowx(rule):
-	return 'allowxperm {} {}:{} {} {};'.format(*rule.parts[1:], join_varargs(rule.varargs));
+	if rule.parts[0] == 'allowx':
+		rule_type = 'allowxperm'
+	elif rule.parts[0] == 'neverallowx':
+		rule_type = 'neverallowxperm'
+
+	return '{} {} {}:{} {} {};'.format(rule_type, *rule.parts[1:], join_varargs(rule.varargs));
 
 
 def format_type(rule):
@@ -138,6 +145,7 @@ def format_noop(rule):
 keyword_format_fn = {
 	'allow': format_allow,
 	'allowx': format_allowx,
+	'neverallowx': format_allowx,
 	'dontaudit': format_allow,
 	'neverallow': format_allow,
 	'type': format_type,
