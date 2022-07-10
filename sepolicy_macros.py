@@ -280,9 +280,7 @@ def define_prop_macro(owner, scope):
 	return Macro(
 		f'{owner}_{scope}_prop',
 		[
-			Match(['typeattribute', '$1', 'property_type']),
-			Match(['typeattribute', '$1', f'{owner}_property_type']),
-			Match(['typeattribute', '$1', f'{owner}_{scope}_property_type']),
+			Match(['type', '$1'], equal=['property_type', f'{owner}_property_type', f'{owner}_{scope}_property_type']),
 		],
 		replace_named_macro,
 	)
@@ -590,6 +588,15 @@ macros = [
 		replace_named_macro,
 	),
 
+	# Form a type statement from leftover typeattributes
+	Macro(
+		'type',
+		[
+			Match(['typeattribute', '$1', '$2']),
+		],
+		replace_typeattribute_with_type,
+	),
+
 	define_prop_macro('system', 'internal'),
 	define_prop_macro('system', 'restricted'),
 	define_prop_macro('system', 'public'),
@@ -607,15 +614,6 @@ macros = [
 			Match(['set_prop', 'vendor_init', '$1']),
 		],
 		replace_named_macro,
-	),
-
-	# Form a type statement from leftover typeattributes
-	Macro(
-		'type',
-		[
-			Match(['typeattribute', '$1', '$2']),
-		],
-		replace_typeattribute_with_type,
 	),
 ]
 
