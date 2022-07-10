@@ -62,12 +62,35 @@ class SepolicyDecompiler:
 		for rule in rules:
 			self.group_rule(rule)
 
+	def get_simple_type_filename(self, rule):
+		keyword = rule.parts[0]
+
+		file_name = None
+		if  keyword == 'type':
+			if 'dev_type' in rule.varargs:
+				file_name = 'device.te'
+			elif ('file_type' in rule.varargs) or ('sysfs_type' in rule.varargs):
+				file_name = 'file.te'
+		elif keyword.endswith('_prop'):
+			file_name = 'property.te'
+
+		return file_name
+
 	def output_type(self, type_name):
 		type = self.types[type_name]
 
-		file_name = f'{type_name}.te'
+		file_name = None
+
+		if len(type.rules) == 1:
+			rule = type.rules[0]
+			file_name = self.get_simple_type_filename(rule)
+
+		if file_name is None:
+			file_name = f'{type_name}.te'
+
 		path = os.path.join(self.output_path, file_name)
-		with open(path, 'w') as file:
+
+		with open(path, 'a') as file:
 			type.write_rules_to_file(file)
 
 	def output_types(self):
