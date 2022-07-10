@@ -173,15 +173,13 @@ def replace_typeattribute(mld, match_result):
 
 
 def replace_typeattribute_with_type(mld, match_result):
-	replace_result = MacroReplaceResult()
-
 	rules = match_result.rules
 
 	assert len(rules) == 1
 
 	rule = rules[0]
 
-	replace_result.removed.append(rule)
+	mld.remove(rule)
 
 	matched_types = match_result.types
 	type = matched_types[0]
@@ -190,11 +188,9 @@ def replace_typeattribute_with_type(mld, match_result):
 	rule = mld.get_one(match_type)
 	if rule is None:
 		rule = Rule(['type', type])
-		replace_result.added.append(rule)
+		mld.add(rule)
 
 	rule.varargs.add(attr_type)
-
-	return replace_result
 
 
 def construct_expanded_base_typeattr(rule):
