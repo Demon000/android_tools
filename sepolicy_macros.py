@@ -84,6 +84,7 @@ def replace_permissions_macro(mld, match_result):
 
 	rule = rules[0]
 
+	macro = match_result.filled_macro
 	match = macro.matches[0]
 	contains = match.contains
 	rule.varargs = rule.varargs.difference(contains)
