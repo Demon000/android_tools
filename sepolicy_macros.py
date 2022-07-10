@@ -89,8 +89,6 @@ def replace_permissions_macro(mld, match_result):
 	rule.varargs = rule.varargs.difference(contains)
 	rule.varargs.add(macro.name)
 
-	return None
-
 
 allow_permission_macros = []
 for macro_name in allow_permission_macro_names:
