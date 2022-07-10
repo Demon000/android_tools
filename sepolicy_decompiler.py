@@ -8,10 +8,11 @@ from sepolicy_macros import *
 
 class SepolicyDecompiler:
 	def __init__(self, cil_paths, property_contexts_path,
-		     file_contexts_path, output_path):
+		     file_contexts_path, hwservice_contexts_path, output_path):
 		self.cil_paths = cil_paths
 		self.property_contexts_path = property_contexts_path
 		self.file_contexts_path = file_contexts_path
+		self.hwservice_contexts_path = hwservice_contexts_path
 		self.output_path = output_path
 		self.mld = MultiLevelDict()
 		self.types = {}
@@ -105,6 +106,10 @@ class SepolicyDecompiler:
 		path = os.path.join(self.output_path, 'file_contexts')
 		shutil.copy(self.file_contexts_path, path)
 
+	def output_hwservice_contexts(self):
+		path = os.path.join(self.output_path, 'hwservice_contexts')
+		shutil.copy(self.file_contexts_path, path)
+
 	def create_output_dir(self):
 		os.makedirs(self.output_path, exist_ok=True)
 
@@ -125,3 +130,4 @@ class SepolicyDecompiler:
 		self.output_types()
 		self.output_property_contexts()
 		self.output_file_contexts()
+		self.output_hwservice_contexts()
