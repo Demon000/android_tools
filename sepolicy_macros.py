@@ -179,13 +179,7 @@ def replace_typeattribute_with_type(mld, match_result):
 	return replace_result
 
 
-def replace_typeattributeset_base_typeattr(mld, match_result):
-	rules = match_result.rules
-
-	assert len(rules) == 1
-
-	rule = rules[0]
-
+def construct_expanded_base_typeattr(rule):
 	try:
 		and_index = rule.varargs.index('and')
 	except ValueError:
@@ -211,6 +205,20 @@ def replace_typeattributeset_base_typeattr(mld, match_result):
 		type_str += ' -'.join(not_tokens)
 
 	type_str += ' }'
+
+	return type_str
+
+def replace_typeattributeset_base_typeattr(mld, match_result):
+	rules = match_result.rules
+
+	assert len(rules) == 1
+
+	rule = rules[0]
+
+	if len(rule.varargs) == 1 and rule.varargs[0] == 'all':
+		type_str = '*'
+	else:
+		type_str = construct_expanded_base_typeattr(rule)
 
 	type = rule.parts[1]
 
