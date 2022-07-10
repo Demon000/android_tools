@@ -605,6 +605,7 @@ macros = [
 			Match(['system_public_prop', '$1']),
 			Match(['set_prop', 'vendor_init', '$1']),
 		],
+		replace_named_macro,
 	),
 
 	# Form a type statement from leftover typeattributes
