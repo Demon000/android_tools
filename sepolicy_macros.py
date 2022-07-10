@@ -280,6 +280,7 @@ def define_prop_macro(owner, scope):
 	return Macro(
 		f'{owner}_{scope}_prop',
 		[
+			Match(['attribute', '$1']),
 			Match(['typeattribute', '$1', 'property_type']),
 			Match(['typeattribute', '$1', f'{owner}_property_type']),
 			Match(['typeattribute', '$1', f'{owner}_{scope}_property_type']),
