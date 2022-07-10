@@ -7,10 +7,9 @@ from sepolicy_mld import *
 from sepolicy_macros import *
 
 class SepolicyDecompiler:
-	def __init__(self, vendor_cil_paths, plat_pub_cil_path, property_contexts_path,
+	def __init__(self, cil_paths, property_contexts_path,
 		     file_contexts_path, hwservice_contexts_path, output_path):
-		self.vendor_cil_paths = vendor_cil_paths
-		self.plat_pub_cil_path = plat_pub_cil_path
+		self.cil_paths = cil_paths
 		self.property_contexts_path = property_contexts_path
 		self.file_contexts_path = file_contexts_path
 		self.hwservice_contexts_path = hwservice_contexts_path
@@ -18,7 +17,7 @@ class SepolicyDecompiler:
 		self.mld = MultiLevelDict()
 		self.types = {}
 
-	def read_cil_line(self, line, output=True):
+	def read_cil_line(self, line):
 		line = line.replace('(', '') \
 			.replace(')', '') \
 			.replace('\n', '')
@@ -31,18 +30,18 @@ class SepolicyDecompiler:
 
 		parts = [sanitize_type(part) for part in parts]
 
-		rule = Rule(parts, output=output)
+		rule = Rule(parts)
 
 		self.mld.add(rule)
 
-	def read_cil(self, path, output=True):
+	def read_cil(self, path):
 		with open(path) as file:
 			for line in file:
-				self.read_cil_line(line, output)
+				self.read_cil_line(line)
 
 	def read_cils(self):
-		self.read_cil(self.plat_pub_cil_path, False)
-		self.read_cil(self.vendor_cil_paths)
+		for path in self.cil_paths:
+			self.read_cil(path)
 
 	def process_macros(self):
 		match_and_replace_macros(self.mld)
