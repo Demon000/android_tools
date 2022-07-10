@@ -108,7 +108,7 @@ class SepolicyDecompiler:
 
 	def output_hwservice_contexts(self):
 		path = os.path.join(self.output_path, 'hwservice_contexts')
-		shutil.copy(self.file_contexts_path, path)
+		shutil.copy(self.hwservice_contexts_path, path)
 
 	def create_output_dir(self):
 		os.makedirs(self.output_path, exist_ok=True)
