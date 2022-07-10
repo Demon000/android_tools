@@ -105,6 +105,7 @@ class SepolicyDecompiler:
 				if line.startswith('#') or line == '\n':
 					continue
 
+				line = re.sub(r'\s+', ' ', line).strip() + '\n'
 				lines.append(line)
 
 		lines.sort()
