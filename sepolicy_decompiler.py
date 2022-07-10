@@ -75,7 +75,7 @@ class SepolicyDecompiler:
 		if  keyword == 'type':
 			if 'dev_type' in rule.varargs:
 				file_name = 'device.te'
-			elif ('file_type' in rule.varargs) or ('sysfs_type' in rule.varargs):
+			elif ('file_type' in rule.varargs) or ('fs_type' in rule.varargs):
 				file_name = 'file.te'
 		elif keyword.endswith('_prop'):
 			file_name = 'property.te'
