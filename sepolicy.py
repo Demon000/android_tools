@@ -165,7 +165,7 @@ def format_rule(rule):
 
 
 class Rule:
-	def __init__(self, parts, varargs=None, main_type=None):
+	def __init__(self, parts, varargs=None, main_type=None, output=True):
 		if varargs is None:
 			parts, varargs = split_varargs(parts)
 
@@ -178,6 +178,7 @@ class Rule:
 		self.parts = parts
 		self.varargs = varargs
 		self.main_type = main_type
+		self.output = output
 
 	def __str__(self):
 		return format_rule(self)
@@ -195,6 +196,9 @@ class Type:
 		self.rules.append(rule)
 
 	def write_rule_to_file(self, rule, file):
+		if not rule.output:
+			return
+
 		s = str(rule)
 		if s == '':
 			return
