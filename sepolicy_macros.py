@@ -192,6 +192,11 @@ def replace_typeattribute_with_type(mld, match_result):
 
 	rule.varargs.add(attr_type)
 
+	match_attributre = Match(['attribute', type])
+	rule = mld.get_one(match_attributre)
+	if rule is not None:
+		mld.remove(rule)
+
 
 def construct_expanded_base_typeattr(rule):
 	try:
