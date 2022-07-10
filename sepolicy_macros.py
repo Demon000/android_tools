@@ -27,7 +27,7 @@ create_ipc_perms = ['create', 'setattr', 'destroy'] + rw_ipc_perms
 
 # Sockets
 rw_socket_perms_no_ioctl = ['read', 'getattr', 'write', 'setattr', 'lock', 'append', 'bind', 'connect', 'getopt',
-							'setopt', 'shutdown', 'map']
+			    'setopt', 'shutdown', 'map']
 rw_socket_perms = ['ioctl'] + rw_socket_perms_no_ioctl
 
 create_socket_perms_no_ioctl = ['create'] + rw_socket_perms_no_ioctl
@@ -64,10 +64,10 @@ allow_permission_macro_names = [
 
 no_w_file_perms = ['append', 'create', 'link', 'unlink', 'relabelfrom', 'rename', 'setattr', 'write']
 no_rw_file_perms = no_w_file_perms + ['open', 'read', 'ioctl', 'lock', 'watch', 'watch_mount', 'watch_sb',
-									  'watch_with_perm', 'watch_reads']
+				      'watch_with_perm', 'watch_reads']
 no_x_file_perms = ['execute', 'execute_no_trans']
 no_w_dir_perms = ['add_name', 'create', 'link', 'relabelfrom', 'remove_name', 'rename', 'reparent', 'rmdir', 'setattr',
-				  'write']
+		  'write']
 
 neverallow_permission_macro_names = [
 	'no_w_dir_perms',
@@ -483,13 +483,14 @@ macros = [
 		[
 			Match(['typeattribute', '$1', 'appdomain']),
 			Match(['typetransition', '$1', 'tmpfs', 'file', 'appdomain_tmpfs']),
-			Match(['allow', '$1', 'appdomain_tmpfs', 'file'], equal=['execute', 'getattr', 'map', 'read', 'write']),
+			Match(['allow', '$1', 'appdomain_tmpfs', 'file'],
+			      equal=['execute', 'getattr', 'map', 'read', 'write']),
 			Match(['neverallow', '{ $1 -runas_app -shell -simpleperf }', '{ domain -$1 }', 'file'],
-				  equal=['no_rw_file_perms']),
+			      equal=['no_rw_file_perms']),
 			Match(['neverallow', '{ appdomain -runas_app -shell -simpleperf -$1 }', '$1', 'file'],
-				  equal=['no_rw_file_perms']),
+			      equal=['no_rw_file_perms']),
 			Match(['neverallow', '{ domain -crash_dump -runas_app -simpleperf -$1 }', '$1', 'process'],
-				  equal=['ptrace']),
+			      equal=['ptrace']),
 		],
 		replace_fn=replace_named_macro,
 	),
