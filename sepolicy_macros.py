@@ -176,8 +176,6 @@ def replace_typeattribute_with_type(mld, match_result):
 
 
 def replace_typeattributeset_base_typeattr(mld, match_result):
-	replace_result = MacroReplaceResult()
-
 	rules = match_result.rules
 
 	assert len(rules) == 1
@@ -212,16 +210,13 @@ def replace_typeattributeset_base_typeattr(mld, match_result):
 
 	type = rule.parts[1]
 
-	replace_result.removed.append(rule)
+	mld.remove(rule)
 
 	match = Match(parts_contains=[type])
 	rules = mld.get(match)
 
 	for rule in rules:
-		if rule.parts[0] == 'typeattributeset':
-			continue
-
-		replace_result.removed.append(rule)
+		mld.remove(rule)
 		new_parts = []
 		for part in rule.parts:
 			if part == type:
@@ -230,10 +225,7 @@ def replace_typeattributeset_base_typeattr(mld, match_result):
 			new_parts.append(part)
 
 		new_rule = Rule(new_parts, rule.varargs)
-		replace_result.added.append(new_rule)
-
-	return replace_result
-
+		mld.add(new_rule)
 
 def replace_typeattributeset(mld, match_result):
 	replace_result = MacroReplaceResult()
