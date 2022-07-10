@@ -270,7 +270,7 @@ def replace_typeattributeset(mld, match_result):
 
 	for type in rule.varargs:
 		typeattribute_rule = Rule(['typeattribute', type, rule.parts[1]])
-		replace_result.added.append(rule)
+		replace_result.added.append(typeattribute_rule)
 
 	return replace_result
 
