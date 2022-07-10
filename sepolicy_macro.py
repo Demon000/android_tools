@@ -1,5 +1,5 @@
 class Macro:
-	def __init__(self, name, matches, replace_fn=None):
+	def __init__(self, name, matches, replace_fn):
 		self.name = name
 		if not isinstance(matches, list):
 			matches = [matches]

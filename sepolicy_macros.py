@@ -283,7 +283,7 @@ def define_prop_macro(owner, scope):
 			Match(['typeattribute', '$1', f'{owner}_property_type']),
 			Match(['typeattribute', '$1', f'{owner}_{scope}_property_type']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	)
 
 
@@ -294,7 +294,7 @@ macros = [
 		[
 			Match(['roletype']),
 		],
-		replace_fn=remove_rules,
+		remove_rules,
 	),
 
 	# Will be recreated based on leftover typeattributes
@@ -303,7 +303,7 @@ macros = [
 		[
 			Match(['type']),
 		],
-		replace_fn=remove_rules,
+		remove_rules,
 	),
 
 	Macro(
@@ -311,7 +311,7 @@ macros = [
 		[
 			Match(['typeattribute', 'base_typeattr_$1']),
 		],
-		replace_fn=remove_rules,
+		remove_rules,
 	),
 
 	*allow_permission_macros,
@@ -323,7 +323,7 @@ macros = [
 		[
 			Match(['typeattribute', '$1']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 
 	Macro(
@@ -331,7 +331,7 @@ macros = [
 		[
 			Match(['typeattributeset', 'base_typeattr_$1']),
 		],
-		replace_fn=replace_typeattributeset_base_typeattr,
+		replace_typeattributeset_base_typeattr,
 	),
 
 	Macro(
@@ -339,7 +339,7 @@ macros = [
 		[
 			Match(['typeattributeset']),
 		],
-		replace_fn=replace_typeattributeset,
+		replace_typeattributeset,
 	),
 
 	Macro(
@@ -351,7 +351,7 @@ macros = [
 			Match(['dontaudit', '$1', '$3', 'process'], equal=['noatsecure']),
 			Match(['allow', '$1', '$3', 'process'], equal=['siginh', 'rlimitinh']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'domain_auto_trans',
@@ -359,7 +359,7 @@ macros = [
 			Match(['domain_trans', '$1', '$2', '$3']),
 			Match(['typetransition', '$1', '$2', 'process', '$3']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'file_type_trans',
@@ -371,7 +371,7 @@ macros = [
 			Match(['allow', '$1', '$3', 'fifo_file'], equal=['create_file_perms']),
 			Match(['allow', '$1', '$3', 'dir'], equal=['create_dir_perms']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'file_type_auto_trans',
@@ -383,14 +383,14 @@ macros = [
 			Match(['typetransition', '$1', '$2', 'sock_file', '$3']),
 			Match(['typetransition', '$1', '$2', 'fifo_file', '$3']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'init_daemon_domain',
 		[
 			Match(['domain_auto_trans', 'init', '$1_exec', '$1']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'r_dir_file',
@@ -399,7 +399,7 @@ macros = [
 			Match(['allow', '$1', '$2', 'file'], equal=['r_file_perms']),
 			Match(['allow', '$1', '$2', 'lnk_file'], equal=['r_file_perms']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'unix_socket_connect',
@@ -407,7 +407,7 @@ macros = [
 			Match(['allow', '$1', '$2_socket', 'sock_file'], equal=['write']),
 			Match(['allow', '$1', '$3', 'unix_stream_socket'], equal=['connectto']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'unix_socket_send',
@@ -415,14 +415,14 @@ macros = [
 			Match(['allow', '$1', '$2_socket', 'sock_file'], equal=['write']),
 			Match(['allow', '$1', '$3', 'unix_dgram_socket'], equal=['sendto']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'get_prop',
 		[
 			Match(['allow', '$1', '$2', 'file'], equal=['getattr', 'open', 'read', 'map']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'set_prop',
@@ -431,14 +431,14 @@ macros = [
 			Match(['unix_socket_connect', '$1', 'property', 'init']),
 			Match(['get_prop', '$1', '$2']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'binder_service',
 		[
 			Match(['typeattribute', '$1', 'binderservicedomain']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'binder_use',
@@ -449,7 +449,7 @@ macros = [
 			Match(['allow', 'servicemanager', '$1', 'file'], equal=['read', 'open']),
 			Match(['allow', 'servicemanager', '$1', 'process'], equal=['getattr']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'hwbinder_use',
@@ -460,7 +460,7 @@ macros = [
 			Match(['allow', 'hwservicemanager', '$1', 'file'], equal=['read', 'open', 'map']),
 			Match(['allow', 'hwservicemanager', '$1', 'process'], equal=['getattr']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'vndbinder_use',
@@ -471,7 +471,7 @@ macros = [
 			Match(['allow', 'vndservicemanager', '$1', 'file'], equal=['read', 'open', 'map']),
 			Match(['allow', 'vndservicemanager', '$1', 'process'], equal=['getattr']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'binder_call',
@@ -480,7 +480,7 @@ macros = [
 			Match(['allow', '$2', '$1', 'binder'], equal=['transfer']),
 			Match(['allow', '$1', '$2', 'fd'], equal=['use']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'wakelock_use',
@@ -494,7 +494,7 @@ macros = [
 			Match(['get_prop', '$1', 'hwservicemanager_prop']),
 			Match(['allow', '$1', 'hidl_manager_hwservice', 'hwservice_manager'], equal=['find']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'app_domain',
@@ -510,14 +510,14 @@ macros = [
 			Match(['neverallow', '{ domain -crash_dump -runas_app -simpleperf -$1 }', '$1', 'process'],
 			      equal=['ptrace']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'net_domain',
 		[
 			Match(['typeattribute', '$1', 'netdomain']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'hal_attribute',
@@ -526,7 +526,7 @@ macros = [
 			Match(['attribute', 'hal_$1_client']),
 			Match(['attribute', 'hal_$1_server']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'hal_server_domain',
@@ -535,7 +535,7 @@ macros = [
 			Match(['typeattribute', '$1', '$2']),
 			Match(['typeattribute', '$1', 'halserverdomain']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'passthrough_hal_client_domain',
@@ -544,7 +544,7 @@ macros = [
 			Match(['typeattribute', '$1', '$2_client']),
 			Match(['typeattribute', '$1', '$2']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'hal_client_domain',
@@ -552,7 +552,7 @@ macros = [
 			Match(['typeattribute', '$1', 'halclientdomain']),
 			Match(['typeattribute', '$1', '$2_client']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'add_service',
@@ -560,7 +560,7 @@ macros = [
 			Match(['allow', '$1', '$2', 'service_manager'], equal=['add', 'find']),
 			Match(['neverallow', '{ domain -$1 }', '$2', 'service_manager'], equal=['add']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'add_hwservice',
@@ -569,7 +569,7 @@ macros = [
 			Match(['allow', '$1', 'hidl_base_hwservice', 'hwservice_manager'], equal=['add']),
 			Match(['neverallow', '{ domain -$1 }', '$2', 'hwservice_manager'], equal=['add']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'hal_attribute_service',
@@ -577,7 +577,7 @@ macros = [
 			Match(['allow', '$1_client', '$2', 'service_manager'], equal=['find']),
 			Match(['add_service', '$1_server', '$2']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 	Macro(
 		'hal_attribute_hwservice',
@@ -586,7 +586,7 @@ macros = [
 			Match(['add_hwservice', '$1_server', '$2']),
 			Match(['neverallow', '{ domain -$1_client -$1_server }', '$2', 'hwservice_manager'], equal=['find']),
 		],
-		replace_fn=replace_named_macro,
+		replace_named_macro,
 	),
 
 	define_prop_macro('system', 'internal'),
@@ -613,7 +613,7 @@ macros = [
 		[
 			Match(['typeattribute', '$1', '$2']),
 		],
-		replace_fn=replace_typeattribute_with_type,
+		replace_typeattribute_with_type,
 	),
 ]
 
