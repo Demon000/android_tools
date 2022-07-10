@@ -14,6 +14,7 @@ class SepolicyDecompiler:
 		self.file_contexts_path = file_contexts_path
 		self.hwservice_contexts_path = hwservice_contexts_path
 		self.output_path = output_path
+		self.genfs_contexts_rules = []
 		self.mld = MultiLevelDict()
 		self.types = {}
 
@@ -31,6 +32,10 @@ class SepolicyDecompiler:
 		parts = [sanitize_type(part) for part in parts]
 
 		rule = Rule(parts)
+
+		if parts[0] == 'genfscon':
+			self.genfs_contexts_rules.append(rule)
+			return
 
 		self.mld.add(rule)
 
