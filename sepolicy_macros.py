@@ -69,6 +69,10 @@ no_x_file_perms = ['execute', 'execute_no_trans']
 no_w_dir_perms = ['add_name', 'create', 'link', 'relabelfrom', 'remove_name', 'rename', 'reparent', 'rmdir', 'setattr',
 		  'write']
 
+all_perms = ['ioctl', 'read', 'write', 'create', 'getattr', 'setattr', 'lock', 'relabelfrom', 'relabelto', 'append',
+	     'map', 'unlink', 'link', 'rename', 'execute', 'quotaon', 'mounton', 'audit_access', 'open', 'execmod',
+	     'watch', 'watch_mount', 'watch_sb', 'watch_with_perm', 'watch_reads', 'execute_no_trans', 'entrypoint']
+
 neverallow_permission_macro_names = [
 	'no_w_dir_perms',
 	'no_x_file_perms',
@@ -91,14 +95,27 @@ def replace_permissions_macro(mld, match_result):
 	rule.varargs.add(macro.name)
 
 
-allow_permission_macros = []
+allow_permission_macros = [
+	Macro(
+		'*',
+		Match(['allow'], contains=all_perms),
+		replace_permissions_macro,
+	),
+]
+
 for macro_name in allow_permission_macro_names:
 	subset = globals()[macro_name]
 	match = Match(['allow'], contains=subset)
 	macro = Macro(macro_name, match, replace_permissions_macro)
 	allow_permission_macros.append(macro)
 
-neverallow_permission_macros = []
+neverallow_permission_macros = [
+	Macro(
+		'*',
+		Match(['neverallow'], contains=all_perms),
+		replace_permissions_macro,
+	),
+]
 for macro_name in neverallow_permission_macro_names:
 	subset = globals()[macro_name]
 	match = Match(['neverallow'], contains=subset)
