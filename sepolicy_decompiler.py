@@ -82,8 +82,22 @@ class SepolicyDecompiler:
 		path = os.path.join(self.output_path, 'file_contexts')
 		shutil.copy(self.file_contexts_path, path)
 
-	def output(self):
+	def create_output_dir(self):
 		os.makedirs(self.output_path, exist_ok=True)
+
+	def clean_output_dir(self):
+		for root, dirs, files in os.walk(self.output_path):
+			for f in files:
+				path = os.path.join(root, f)
+				os.unlink(path)
+
+			for d in dirs:
+				path = os.path.join(root, d)
+				shutil.rmtree(path)
+
+	def output(self):
+		self.create_output_dir()
+		self.clean_output_dir()
 
 		self.output_types()
 		self.output_property_contexts()
