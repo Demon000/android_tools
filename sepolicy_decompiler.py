@@ -98,13 +98,28 @@ class SepolicyDecompiler:
 		for type_name in self.types:
 			self.output_type(type_name)
 
+	def copy_contexts(self, input_path, output_path):
+		lines = []
+		with open(input_path, 'r') as file:
+			for line in file:
+				if line.startswith('#') or line == '\n':
+					continue
+
+				lines.append(line)
+
+		lines.sort()
+
+		with open(output_path, 'w') as file:
+			for line in lines:
+				file.write(line)
+
 	def output_property_contexts(self):
 		path = os.path.join(self.output_path, 'property_contexts')
-		shutil.copy(self.property_contexts_path, path)
+		self.copy_contexts(self.property_contexts_path, path)
 
 	def output_file_contexts(self):
 		path = os.path.join(self.output_path, 'file_contexts')
-		shutil.copy(self.file_contexts_path, path)
+		self.copy_contexts(self.file_contexts_path, path)
 
 	def output_hwservice_contexts(self):
 		path = os.path.join(self.output_path, 'hwservice_contexts')
