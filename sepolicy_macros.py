@@ -220,6 +220,9 @@ def replace_typeattributeset_base_typeattr(mld, match_result):
 	rules = mld.get(match)
 
 	for rule in rules:
+		if rule.parts[0] == 'typeattributeset':
+			continue
+
 		replace_result.removed.append(rule)
 		new_parts = []
 		for part in rule.parts:
