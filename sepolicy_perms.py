@@ -134,7 +134,7 @@ system_perms = ['ipc_info', 'module_load', 'module_request', 'syslog_console', '
 binder_perms = ['call', 'impersonate', 'set_context_mgr', 'transfer']
 key_perms = ['create', 'link', 'read', 'search', 'setattr', 'view', 'write']
 
-property_service_perms = ['set']
+# property_service_perms = ['set']
 service_manager_perms = ['add', 'find', 'list']
 keystore_key_perms = ['get_state', 'get', 'insert', 'delete', 'exist', 'list', 'reset', 'password', 'lock', 'unlock',
 		      'is_empty', 'sign', 'verify', 'grant', 'duplicate', 'clear_uid', 'add_auth', 'user_changed',
@@ -247,7 +247,7 @@ all_perms_types = {
 	'binder': binder_perms,
 	'key': key_perms,
 
-	'property_service': property_service_perms,
+	# 'property_service': property_service_perms,
 	'service_manager': service_manager_perms,
 	'hwservice_manager': service_manager_perms,
 	'keystore_key': keystore_key_perms,
