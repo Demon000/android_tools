@@ -69,9 +69,17 @@ no_x_file_perms = ['execute', 'execute_no_trans']
 no_w_dir_perms = ['add_name', 'create', 'link', 'relabelfrom', 'remove_name', 'rename', 'reparent', 'rmdir', 'setattr',
 		  'write']
 
-all_perms = ['ioctl', 'read', 'write', 'create', 'getattr', 'setattr', 'lock', 'relabelfrom', 'relabelto', 'append',
-	     'map', 'unlink', 'link', 'rename', 'execute', 'quotaon', 'mounton', 'audit_access', 'open', 'execmod',
-	     'watch', 'watch_mount', 'watch_sb', 'watch_with_perm', 'watch_reads', 'execute_no_trans', 'entrypoint']
+inode_all_perms = ['ioctl', 'read', 'write', 'create', 'getattr', 'setattr', 'lock', 'relabelfrom', 'relabelto', 'append',
+		   'map', 'unlink', 'link', 'rename', 'execute', 'quotaon', 'mounton', 'audit_access', 'open', 'execmod',
+		   'watch', 'watch_mount', 'watch_sb', 'watch_with_perm', 'watch_reads']
+file_all_perms = inode_all_perms + ['execute_no_trans', 'entrypoint']
+dir_all_perms = inode_all_perms + ['add_name', 'remove_name', 'reparent', 'search', 'rmdir']
+
+all_perms_types = {
+	'anon_inode': inode_all_perms,
+	'file': file_all_perms,
+	'dir': dir_all_perms,
+}
 
 neverallow_permission_macro_names = [
 	'no_w_dir_perms',
@@ -95,32 +103,28 @@ def replace_permissions_macro(mld, match_result):
 	rule.varargs.add(macro.name)
 
 
-allow_permission_macros = [
-	Macro(
-		'*',
-		Match(['allow'], contains=all_perms),
-		replace_permissions_macro,
-	),
-]
+allow_permission_macros = []
+neverallow_permission_macros = []
 
-for macro_name in allow_permission_macro_names:
-	subset = globals()[macro_name]
-	match = Match(['allow'], contains=subset)
-	macro = Macro(macro_name, match, replace_permissions_macro)
-	allow_permission_macros.append(macro)
+def add_perms_to(keyword, names, macros):
+	for macro_name in names:
+		subset = globals()[macro_name]
+		match = Match([keyword], contains=subset)
+		macro = Macro(macro_name, match, replace_permissions_macro)
+		macros.append(macro)
 
-neverallow_permission_macros = [
-	Macro(
-		'*',
-		Match(['neverallow'], contains=all_perms),
-		replace_permissions_macro,
-	),
-]
-for macro_name in neverallow_permission_macro_names:
-	subset = globals()[macro_name]
-	match = Match(['neverallow'], contains=subset)
-	macro = Macro(macro_name, match, replace_permissions_macro)
-	neverallow_permission_macros.append(macro)
+def add_all_perms_to(keyword, macros):
+	for type in all_perms_types:
+		perms = all_perms_types[type]
+		match = Match([keyword, '$1', '$2', type], contains=perms)
+		macro = Macro('*', match, replace_permissions_macro)
+		macros.append(macro)
+
+add_all_perms_to('allow', allow_permission_macros)
+add_perms_to('allow', allow_permission_macro_names, allow_permission_macros)
+
+add_all_perms_to('neverallow', neverallow_permission_macros)
+add_perms_to('neverallow', neverallow_permission_macro_names, neverallow_permission_macros)
 
 
 def replace_named_macro(mld, match_result):
