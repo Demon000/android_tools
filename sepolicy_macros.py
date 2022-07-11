@@ -69,16 +69,161 @@ no_x_file_perms = ['execute', 'execute_no_trans']
 no_w_dir_perms = ['add_name', 'create', 'link', 'relabelfrom', 'remove_name', 'rename', 'reparent', 'rmdir', 'setattr',
 		  'write']
 
-inode_all_perms = ['ioctl', 'read', 'write', 'create', 'getattr', 'setattr', 'lock', 'relabelfrom', 'relabelto', 'append',
-		   'map', 'unlink', 'link', 'rename', 'execute', 'quotaon', 'mounton', 'audit_access', 'open', 'execmod',
-		   'watch', 'watch_mount', 'watch_sb', 'watch_with_perm', 'watch_reads']
-file_all_perms = inode_all_perms + ['execute_no_trans', 'entrypoint']
-dir_all_perms = inode_all_perms + ['add_name', 'remove_name', 'reparent', 'search', 'rmdir']
+fd_perms = ['use']
+peer_perms = ['recv']
+memprotect_perms = ['mmap_zero']
+
+netif_perms = ['egress', 'ingress']
+packet_perms = ['forward_in', 'forward_out', 'recv', 'relabelto', 'send']
+association_perms = ['polmatch', 'recvfrom', 'sendto', 'setcontext']
+bpf_perms = ['map_create', 'map_read', 'map_write', 'prog_load', 'prog_run']
+perf_event_perms = ['cpu', 'kernel', 'open', 'read', 'tracepoint', 'write']
+filesystem_perms = ['associate', 'getattr', 'mount', 'quotaget', 'quotamod', 'relabelfrom', 'relabelto', 'remount', 'unmount', 'watch']
+
+common_file_perms = ['append', 'audit_access', 'create', 'execute', 'execmod', 'getattr', 'ioctl', 'link', 'lock', 'map',
+		     'mounton', 'open', 'quotaon', 'read', 'relabelfrom', 'relabelto', 'rename', 'setattr', 'unlink',
+		     'watch', 'watch_mount', 'watch_sb', 'watch_with_perm', 'watch_reads', 'write']
+dir_perms = common_file_perms + ['add_name', 'remove_name', 'reparent', 'rmdir', 'search']
+file_perms = common_file_perms + ['entrypoint', 'execute_no_trans']
+
+common_socket_perms = ['accept', 'append', 'bind', 'connect', 'create', 'getattr', 'getopt', 'ioctl', 'listen', 'lock',
+		       'map', 'name_bind', 'read', 'recvfrom', 'relabelfrom', 'relabelto', 'sendto', 'setattr', 'setopt',
+		       'shutdown', 'write']
+tcp_socket_perms = common_socket_perms + ['name_connect', 'node_bind']
+icmp_socket_perms = common_socket_perms + ['node_bind']
+sctp_socket_perms = tcp_socket_perms + ['association']
+unix_stream_socket_perms = common_socket_perms + ['connectto']
+tun_socket_perms = common_socket_perms + ['attach_queue']
+netlink_xfrm_socket_perms = common_socket_perms + ['nlmsg_read', 'nlmsg_write']
+netlink_audit_socket_perms = netlink_xfrm_socket_perms + ['nlmsg_readpriv', 'nlmsg_relay', 'nlmsg_tty_audit']
+
+ipc_perms = ['associate', 'create', 'destroy', 'getattr', 'read', 'setattr', 'unix_read', 'unix_write', 'write']
+msgq_perms = ipc_perms + ['enqueue']
+msg_perms = ipc_perms + ['send', 'receive']
+shm_perms = ipc_perms + ['lock']
+
+process_perms = ['dyntransition', 'execheap', 'execmem', 'execstack', 'fork', 'getattr', 'getcap', 'getpgid', 'getsched',
+		 'getsession', 'getrlimit', 'noatsecure', 'ptrace', 'rlimitinh', 'setcap', 'setcurrent', 'setexec',
+		 'setfscreate', 'setkeycreate', 'setpgid', 'setrlimit', 'setsched', 'setsockcreate', 'share', 'sigchld',
+		 'siginh', 'sigkill', 'signal', 'signull', 'sigstop', 'transition']
+process2_perms = ['nnp_transition', 'nosuid_transition']
+
+capability_perms = ['audit_write', 'chown', 'dac_override', 'dac_read_search', 'fowner', 'fsetid', 'ipc_lock', 'ipc_owner',
+		    'kill', 'lease', 'linux_immutable', 'mknod', 'net_admin', 'net_bind_service', 'net_raw', 'netbroadcast',
+		    'setfcap', 'setgid', 'setpcap', 'setuid', 'sys_admin', 'sys_boot', 'sys_chroot', 'sys_module', 'sys_nice',
+		    'sys_pacct', 'sys_ptrace', 'sys_rawio', 'sys_resource', 'sys_time', 'sys_tty_config']
+capability2_perms = ['audit_read', 'bpf', 'block_suspend', 'mac_admin', 'mac_override', 'perfmon', 'syslog', 'wake_alarm']
+
+cap_userns_perms = ['audit_write', 'chown', 'dac_override', 'dac_read_search', 'fowner', 'fsetid', 'ipc_lock', 'ipc_owner', 'kill',
+	      'lease', 'linux_immutable', 'mknod', 'net_admin', 'net_bind_service', 'net_raw', 'netbroadcast', 'setfcap',
+	      'setgid', 'setpcap', 'setuid', 'sys_admin', 'sys_boot', 'sys_chroot', 'sys_module', 'sys_nice', 'sys_pacct',
+	      'sys_ptrace', 'sys_rawio', 'sys_resource', 'sys_time', 'sys_tty_config']
+cap2_userns_perms = ['audit_read', 'bpf', 'block_suspend', 'mac_admin', 'mac_override', 'perfmon', 'syslog', 'wake_alarm']
+
+security_perms = ['check_context', 'compute_av', 'compute_create', 'compute_member', 'compute_relabel', 'compute_user',
+		  'load_policy', 'read_policy', 'setbool', 'setcheckreqprot', 'setenforce', 'setsecparam', 'validate_trans']
+
+system_perms = ['ipc_info', 'module_load', 'module_request', 'syslog_console', 'syslog_mod', 'syslog_read']
+binder_perms = ['call', 'impersonate', 'set_context_mgr', 'transfer']
 
 all_perms_types = {
-	'anon_inode': inode_all_perms,
-	'file': file_all_perms,
-	'dir': dir_all_perms,
+	'fd': fd_perms,
+	'peer': peer_perms,
+	'memprotect': memprotect_perms,
+	'netif': netif_perms,
+	'packet': packet_perms,
+	'association': association_perms,
+	'bpf': bpf_perms,
+	'perf_event': perf_event_perms,
+	'filesystem': filesystem_perms,
+
+	'lnk_file': common_file_perms,
+	'chr_file': common_file_perms,
+	'blk_file': common_file_perms,
+	'sock_file': common_file_perms,
+	'fifo_file': common_file_perms,
+	'anon_inode': common_file_perms,
+	'dir': dir_perms,
+	'file': file_perms,
+
+	'socket': common_socket_perms,
+	'packet_socket': common_socket_perms,
+	'unix_dgram_socket': common_socket_perms,
+	'key_socket': common_socket_perms,
+	'netlink_socket': common_socket_perms,
+	'netlink_nflog_socket': common_socket_perms,
+	'netlink_selinux_socket': common_socket_perms,
+	'netlink_dnrt_socket': common_socket_perms,
+	'netlink_kobject_uevent_socket': common_socket_perms,
+	'netlink_iscsi_socket': common_socket_perms,
+	'netlink_fib_lookup_socket': common_socket_perms,
+	'netlink_connector_socket': common_socket_perms,
+	'netlink_netfilter_socket': common_socket_perms,
+	'netlink_generic_socket': common_socket_perms,
+	'netlink_scsitransport_socket': common_socket_perms,
+	'netlink_rdma_socket': common_socket_perms,
+	'netlink_crypto_socket': common_socket_perms,
+	'appletalk_socket': common_socket_perms,
+
+	'ax25_socket': common_socket_perms,
+	'ipx_socket': common_socket_perms,
+	'netrom_socket': common_socket_perms,
+	'atmpvc_socket': common_socket_perms,
+	'x25_socket': common_socket_perms,
+	'rose_socket': common_socket_perms,
+	'decnet_socket': common_socket_perms,
+	'atmsvc_socket': common_socket_perms,
+	'rds_socket': common_socket_perms,
+	'irda_socket': common_socket_perms,
+	'pppox_socket': common_socket_perms,
+	'llc_socket': common_socket_perms,
+	'can_socket': common_socket_perms,
+	'tipc_socket': common_socket_perms,
+	'bluetooth_socket': common_socket_perms,
+	'iucv_socket': common_socket_perms,
+	'rxrpc_socket': common_socket_perms,
+	'isdn_socket': common_socket_perms,
+	'phonet_socket': common_socket_perms,
+	'ieee802154_socket': common_socket_perms,
+	'caif_socket': common_socket_perms,
+	'alg_socket': common_socket_perms,
+	'nfc_socket': common_socket_perms,
+	'vsock_socket': common_socket_perms,
+	'kcm_socket': common_socket_perms,
+	'qipcrtr_socket': common_socket_perms,
+	'smc_socket': common_socket_perms,
+	'xdp_socket': common_socket_perms,
+
+	'tcp_socket': tcp_socket_perms,
+	'udp_socket': tcp_socket_perms,
+	'rawip_socket': tcp_socket_perms,
+	'dccp_socket': tcp_socket_perms,
+	'unix_stream_socket': unix_stream_socket_perms,
+	'tun_socket': tun_socket_perms,
+	'netlink_xfrm_socket': netlink_xfrm_socket_perms,
+	'netlink_route_socket': netlink_xfrm_socket_perms,
+	'netlink_firewall_socket': netlink_xfrm_socket_perms,
+	'netlink_tcpdiag_socket': netlink_xfrm_socket_perms,
+	'netlink_ip6fw_socket': netlink_xfrm_socket_perms,
+	'netlink_audit_socket': netlink_audit_socket_perms,
+	'sctp_socket': sctp_socket_perms,
+	'icmp_socket': icmp_socket_perms,
+
+	'ipc': ipc_perms,
+	'sem': ipc_perms,
+	'msgq': msgq_perms,
+	'msg': msg_perms,
+	'shm': shm_perms,
+
+	'process': process_perms,
+	'process2': process2_perms,
+	'capability': capability2_perms,
+	'capability2': capability2_perms,
+	'cap_userns': cap_userns_perms,
+	'cap2_userns': cap2_userns_perms,
+
+	'security': security_perms,
+	'system': system_perms,
 }
 
 neverallow_permission_macro_names = [
