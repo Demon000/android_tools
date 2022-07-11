@@ -74,6 +74,7 @@ peer_perms = ['recv']
 memprotect_perms = ['mmap_zero']
 
 netif_perms = ['egress', 'ingress']
+node_perms = ['recvfrom', 'sendto']
 packet_perms = ['forward_in', 'forward_out', 'recv', 'relabelto', 'send']
 association_perms = ['polmatch', 'recvfrom', 'sendto', 'setcontext']
 bpf_perms = ['map_create', 'map_read', 'map_write', 'prog_load', 'prog_run']
@@ -85,6 +86,9 @@ common_file_perms = ['append', 'audit_access', 'create', 'execute', 'execmod', '
 		     'watch', 'watch_mount', 'watch_sb', 'watch_with_perm', 'watch_reads', 'write']
 dir_perms = common_file_perms + ['add_name', 'remove_name', 'reparent', 'rmdir', 'search']
 file_perms = common_file_perms + ['entrypoint', 'execute_no_trans']
+# compiled rule also contains entrypoint and execute_no_trans
+# chr_file_perms = common_file_perms
+chr_file_perms = file_perms
 
 common_socket_perms = ['accept', 'append', 'bind', 'connect', 'create', 'getattr', 'getopt', 'ioctl', 'listen', 'lock',
 		       'map', 'name_bind', 'read', 'recvfrom', 'relabelfrom', 'relabelto', 'sendto', 'setattr', 'setopt',
@@ -95,6 +99,9 @@ sctp_socket_perms = tcp_socket_perms + ['association']
 unix_stream_socket_perms = common_socket_perms + ['connectto']
 tun_socket_perms = common_socket_perms + ['attach_queue']
 netlink_xfrm_socket_perms = common_socket_perms + ['nlmsg_read', 'nlmsg_write']
+# compiled rule contains nlmsg_readpriv too
+# netlink_route_socket_perms = netlink_xfrm_socket_perms
+netlink_route_socket_perms = netlink_xfrm_socket_perms + ['nlmsg_readpriv']
 netlink_audit_socket_perms = netlink_xfrm_socket_perms + ['nlmsg_readpriv', 'nlmsg_relay', 'nlmsg_tty_audit']
 
 ipc_perms = ['associate', 'create', 'destroy', 'getattr', 'read', 'setattr', 'unix_read', 'unix_write', 'write']
@@ -108,29 +115,42 @@ process_perms = ['dyntransition', 'execheap', 'execmem', 'execstack', 'fork', 'g
 		 'siginh', 'sigkill', 'signal', 'signull', 'sigstop', 'transition']
 process2_perms = ['nnp_transition', 'nosuid_transition']
 
+# netbroadcast is actually net_broadcast
+# audit_control is added in compiled rule
+# capability_perms = ['audit_write', 'chown', 'dac_override', 'dac_read_search', 'fowner', 'fsetid', 'ipc_lock', 'ipc_owner',
+# 		    'kill', 'lease', 'linux_immutable', 'mknod', 'net_admin', 'net_bind_service', 'net_raw', 'netbroadcast',
+# 		    'setfcap', 'setgid', 'setpcap', 'setuid', 'sys_admin', 'sys_boot', 'sys_chroot', 'sys_module', 'sys_nice',
+# 		    'sys_pacct', 'sys_ptrace', 'sys_rawio', 'sys_resource', 'sys_time', 'sys_tty_config']
 capability_perms = ['audit_write', 'chown', 'dac_override', 'dac_read_search', 'fowner', 'fsetid', 'ipc_lock', 'ipc_owner',
-		    'kill', 'lease', 'linux_immutable', 'mknod', 'net_admin', 'net_bind_service', 'net_raw', 'netbroadcast',
+		    'kill', 'lease', 'linux_immutable', 'mknod', 'net_admin', 'net_bind_service', 'net_raw', 'net_broadcast',
 		    'setfcap', 'setgid', 'setpcap', 'setuid', 'sys_admin', 'sys_boot', 'sys_chroot', 'sys_module', 'sys_nice',
-		    'sys_pacct', 'sys_ptrace', 'sys_rawio', 'sys_resource', 'sys_time', 'sys_tty_config']
-capability2_perms = ['audit_read', 'bpf', 'block_suspend', 'mac_admin', 'mac_override', 'perfmon', 'syslog', 'wake_alarm']
+		    'sys_pacct', 'sys_ptrace', 'sys_rawio', 'sys_resource', 'sys_time', 'sys_tty_config', 'audit_control']
 
-cap_userns_perms = ['audit_write', 'chown', 'dac_override', 'dac_read_search', 'fowner', 'fsetid', 'ipc_lock', 'ipc_owner', 'kill',
-	      'lease', 'linux_immutable', 'mknod', 'net_admin', 'net_bind_service', 'net_raw', 'netbroadcast', 'setfcap',
-	      'setgid', 'setpcap', 'setuid', 'sys_admin', 'sys_boot', 'sys_chroot', 'sys_module', 'sys_nice', 'sys_pacct',
-	      'sys_ptrace', 'sys_rawio', 'sys_resource', 'sys_time', 'sys_tty_config']
-cap2_userns_perms = ['audit_read', 'bpf', 'block_suspend', 'mac_admin', 'mac_override', 'perfmon', 'syslog', 'wake_alarm']
+# bpf missing from compiled rule
+# capability2_perms = ['audit_read', 'bpf', 'block_suspend', 'mac_admin', 'mac_override', 'perfmon', 'syslog', 'wake_alarm']
+capability2_perms = ['audit_read', 'block_suspend', 'mac_admin', 'mac_override', 'perfmon', 'syslog', 'wake_alarm']
 
 security_perms = ['check_context', 'compute_av', 'compute_create', 'compute_member', 'compute_relabel', 'compute_user',
 		  'load_policy', 'read_policy', 'setbool', 'setcheckreqprot', 'setenforce', 'setsecparam', 'validate_trans']
 
 system_perms = ['ipc_info', 'module_load', 'module_request', 'syslog_console', 'syslog_mod', 'syslog_read']
 binder_perms = ['call', 'impersonate', 'set_context_mgr', 'transfer']
+key_perms = ['create', 'link', 'read', 'search', 'setattr', 'view', 'write']
+
+property_service_perms = ['set']
+service_manager_perms = ['add', 'find', 'list']
+keystore_key_perms = ['get_state', 'get', 'insert', 'delete', 'exist', 'list', 'reset', 'password', 'lock', 'unlock',
+		      'is_empty', 'sign', 'verify', 'grant', 'duplicate', 'clear_uid', 'add_auth', 'user_changed',
+		      'gen_unique_id']
+drmservice_perms = ['consumeRights', 'setPlaybackStatus', 'openDecryptSession', 'closeDecryptSession',
+		    'initializeDecryptUnit', 'decrypt', 'finalizeDecryptUnit', 'pread']
 
 all_perms_types = {
 	'fd': fd_perms,
 	'peer': peer_perms,
 	'memprotect': memprotect_perms,
 	'netif': netif_perms,
+	'node': node_perms,
 	'packet': packet_perms,
 	'association': association_perms,
 	'bpf': bpf_perms,
@@ -138,11 +158,11 @@ all_perms_types = {
 	'filesystem': filesystem_perms,
 
 	'lnk_file': common_file_perms,
-	'chr_file': common_file_perms,
 	'blk_file': common_file_perms,
 	'sock_file': common_file_perms,
 	'fifo_file': common_file_perms,
 	'anon_inode': common_file_perms,
+	'chr_file': chr_file_perms,
 	'dir': dir_perms,
 	'file': file_perms,
 
@@ -195,19 +215,19 @@ all_perms_types = {
 	'xdp_socket': common_socket_perms,
 
 	'tcp_socket': tcp_socket_perms,
-	'udp_socket': tcp_socket_perms,
-	'rawip_socket': tcp_socket_perms,
 	'dccp_socket': tcp_socket_perms,
 	'unix_stream_socket': unix_stream_socket_perms,
 	'tun_socket': tun_socket_perms,
 	'netlink_xfrm_socket': netlink_xfrm_socket_perms,
-	'netlink_route_socket': netlink_xfrm_socket_perms,
 	'netlink_firewall_socket': netlink_xfrm_socket_perms,
 	'netlink_tcpdiag_socket': netlink_xfrm_socket_perms,
 	'netlink_ip6fw_socket': netlink_xfrm_socket_perms,
+	'netlink_route_socket': netlink_route_socket_perms,
 	'netlink_audit_socket': netlink_audit_socket_perms,
 	'sctp_socket': sctp_socket_perms,
 	'icmp_socket': icmp_socket_perms,
+	'udp_socket': icmp_socket_perms,
+	'rawip_socket': icmp_socket_perms,
 
 	'ipc': ipc_perms,
 	'sem': ipc_perms,
@@ -217,13 +237,21 @@ all_perms_types = {
 
 	'process': process_perms,
 	'process2': process2_perms,
-	'capability': capability2_perms,
+	'capability': capability_perms,
 	'capability2': capability2_perms,
-	'cap_userns': cap_userns_perms,
-	'cap2_userns': cap2_userns_perms,
+	'cap_userns': capability_perms,
+	'cap2_userns': capability2_perms,
 
 	'security': security_perms,
 	'system': system_perms,
+	'binder': binder_perms,
+	'key': key_perms,
+
+	'property_service': property_service_perms,
+	'service_manager': service_manager_perms,
+	'hwservice_manager': service_manager_perms,
+	'keystore_key': keystore_key_perms,
+	'drmservice': drmservice_perms,
 }
 
 neverallow_permission_macro_names = [
@@ -250,6 +278,7 @@ def replace_permissions_macro(mld, match_result):
 
 allow_permission_macros = []
 neverallow_permission_macros = []
+dontaudit_permission_macros = []
 
 def add_perms_to(keyword, names, macros):
 	for macro_name in names:
@@ -271,6 +300,7 @@ add_perms_to('allow', allow_permission_macro_names, allow_permission_macros)
 add_all_perms_to('neverallow', neverallow_permission_macros)
 add_perms_to('neverallow', neverallow_permission_macro_names, neverallow_permission_macros)
 
+add_all_perms_to('dontaudit', dontaudit_permission_macros)
 
 def replace_named_macro(mld, match_result):
 	replace_result = MacroReplaceResult()
@@ -482,6 +512,7 @@ macros = [
 
 	*allow_permission_macros,
 	*neverallow_permission_macros,
+	*dontaudit_permission_macros,
 
 	# Rename typeattribute to attribute to match written sepolicy
 	Macro(
