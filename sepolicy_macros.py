@@ -132,6 +132,9 @@ def replace_named_macro(mld, match_result):
 	main_type = None
 
 	for rule in rules:
+		if rule is None:
+			continue
+
 		if rule.parts[1] == matched_types[0]:
 			main_type = rule.main_type
 
@@ -650,6 +653,18 @@ def match_macro_rules(mld, match_results, macro, index, rules, matched_types):
 	match = macro.matches[index]
 	matched_rules = mld.get(match)
 
+	def call_again(new_rule):
+		new_rules = rules[:] + [new_rule]
+
+		match_macro_rules(mld, match_results, new_macro, index + 1,
+				  new_rules, merged_matched_types)
+
+	if not len(matched_rules) and match.optional:
+		merged_matched_types = matched_types[:]
+		new_macro = macro
+
+		call_again(None)
+
 	for rule in matched_rules:
 		new_matched_types = match.extract_matched_indices(rule)
 		merged_matched_types = merge_matched_types(matched_types, new_matched_types)
@@ -657,10 +672,8 @@ def match_macro_rules(mld, match_results, macro, index, rules, matched_types):
 			continue
 
 		new_macro = macro.fill_matched_indices(new_matched_types)
-		new_rules = rules[:] + [rule]
 
-		match_macro_rules(mld, match_results, new_macro, index + 1,
-				  new_rules, merged_matched_types)
+		call_again(rule)
 
 
 def match_and_replace_macro(mld, macro):

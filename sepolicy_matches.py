@@ -22,7 +22,7 @@ def extract_index(part):
 
 
 class Match:
-	def __init__(self, parts=None, parts_contains=None, contains=None, equal=None):
+	def __init__(self, parts=None, parts_contains=None, contains=None, equal=None, optional=False):
 		self.match_indices = []
 		self.max_index = -1
 		self.contains = None
@@ -31,6 +31,7 @@ class Match:
 		self.parts = None
 		self.parts_len = None
 		self.parts_contains = None
+		self.optional = optional
 
 		if contains is not None:
 			self.contains = set(contains)
