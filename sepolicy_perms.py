@@ -139,6 +139,9 @@ service_manager_perms = ['add', 'find', 'list']
 keystore_key_perms = ['get_state', 'get', 'insert', 'delete', 'exist', 'list', 'reset', 'password', 'lock', 'unlock',
 		      'is_empty', 'sign', 'verify', 'grant', 'duplicate', 'clear_uid', 'add_auth', 'user_changed',
 		      'gen_unique_id']
+keystore2_perms = ['add_auth', 'change_password', 'change_user', 'clear_ns', 'clear_uid', 'delete_all_keys',
+		  'early_boot_ended', 'get_auth_token', 'get_state', 'list', 'lock', 'pull_metrics', 'report_off_body',
+		  'reset', 'unlock']
 drmservice_perms = ['consumeRights', 'setPlaybackStatus', 'openDecryptSession', 'closeDecryptSession',
 		    'initializeDecryptUnit', 'decrypt', 'finalizeDecryptUnit', 'pread']
 
@@ -248,6 +251,7 @@ all_perms_types = {
 	'service_manager': service_manager_perms,
 	'hwservice_manager': service_manager_perms,
 	'keystore_key': keystore_key_perms,
+	'keystore2': keystore2_perms,
 	'drmservice': drmservice_perms,
 }
 
