@@ -154,4 +154,4 @@ class Match:
 
 			new_parts[i] = self.parts[i].format(match_type)
 
-		return Match(new_parts, self.parts_contains, self.contains, self.equal)
+		return Match(new_parts, self.parts_contains, self.contains, self.equal, self.optional)
