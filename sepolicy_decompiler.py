@@ -74,11 +74,11 @@ class SepolicyDecompiler:
 		file_name = None
 		if  keyword == 'type':
 			if 'dev_type' in rule.varargs:
-				file_name = 'device.te'
+				file_name = 'device'
 			elif ('file_type' in rule.varargs) or ('fs_type' in rule.varargs):
-				file_name = 'file.te'
+				file_name = 'file'
 		elif keyword.endswith('_prop'):
-			file_name = 'property.te'
+			file_name = 'property'
 
 		return file_name
 
@@ -92,7 +92,10 @@ class SepolicyDecompiler:
 			file_name = self.get_simple_type_filename(rule)
 
 		if file_name is None:
-			file_name = f'{type_name}.te'
+			file_name = type_name
+
+		file_name = file_name[:(255 - 3)]
+		file_name += '.te'
 
 		path = os.path.join(self.output_path, file_name)
 
