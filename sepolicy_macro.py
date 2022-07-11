@@ -1,11 +1,12 @@
 class Macro:
-	def __init__(self, name, matches, replace_fn):
+	def __init__(self, name, matches, replace_fn, check_fn=None):
 		self.name = name
 		if not isinstance(matches, list):
 			matches = [matches]
 		self.matches = matches
 		self.replace_fn = replace_fn
 		self.max_index = -1
+		self.check_fn = check_fn
 
 		for match in matches:
 			if match.max_index is not None and \

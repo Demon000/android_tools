@@ -518,10 +518,21 @@ macros = [
 		replace_named_macro,
 	),
 	Macro(
+		'userfaultfd_use',
+		[
+			Match(['typetransition', '$1', '$1', 'anon_inode', '"[userfaultfd]"', '$1_userfaultfd']),
+			Match(['allow', '$1', '$1_userfaultfd', 'anon_inode'], equal=['create', 'ioctl', 'read']),
+			Match(['neverallow', '{ domain -$1 }', '$1_userfaultfd', 'anon_inode'], equal=['*']),
+			Match(['neverallow', '$1', '~$1_userfaultfd', 'anon_inode'], equal=['*']),
+		],
+		replace_named_macro,
+	),
+	Macro(
 		'app_domain',
 		[
 			Match(['typeattribute', '$1', 'appdomain']),
 			Match(['typetransition', '$1', 'tmpfs', 'file', 'appdomain_tmpfs']),
+			Match(['userfaultfd_use', '$1'], optional=True),
 			Match(['allow', '$1', 'appdomain_tmpfs', 'file'],
 			      equal=['execute', 'getattr', 'map', 'read', 'write']),
 			Match(['neverallow', '{ $1 -runas_app -shell -simpleperf }', '{ domain -$1 }', 'file'],
@@ -529,9 +540,12 @@ macros = [
 			Match(['neverallow', '{ appdomain -runas_app -shell -simpleperf -$1 }', '$1', 'file'],
 			      equal=['no_rw_file_perms']),
 			Match(['neverallow', '{ domain -crash_dump -runas_app -simpleperf -$1 }', '$1', 'process'],
-			      equal=['ptrace']),
+			      equal=['ptrace'], optional=True),
+			Match(['neverallow', '{ domain -crash_dump -llkd -runas_app -simpleperf -$1 }', '$1', 'process'],
+			      equal=['ptrace'], optional=True),
 		],
 		replace_named_macro,
+		lambda rules: (rules[6] is not None) ^ (rules[7] is not None),
 	),
 	Macro(
 		'net_domain',
@@ -663,7 +677,8 @@ def match_macro_rules(mld, match_results, macro, index, rules, matched_types):
 	extend_matched_types(macro, matched_types)
 
 	if index == len(macro.matches):
-		if macro.is_fully_filled:
+		if macro.is_fully_filled and \
+			(macro.check_fn is None or macro.check_fn(rules)):
 			match_result = MacroMatchResult(macro, rules, matched_types)
 			match_results.append(match_result)
 
