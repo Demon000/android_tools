@@ -531,6 +531,8 @@ macros = [
 		[
 			Match(['allow', '$1_client', '$2', 'service_manager'], equal=['find']),
 			Match(['add_service', '$1_server', '$2']),
+			Match(['neverallow', '{ domain -$1_client -$1_server -atrace -dumpstate -shell -system_app -traceur_app }', '$2', 'service_manager'],
+			      equal=['find']),
 		],
 		replace_named_macro,
 	),
@@ -539,7 +541,8 @@ macros = [
 		[
 			Match(['allow', '$1_client', '$2', 'hwservice_manager'], equal=['find']),
 			Match(['add_hwservice', '$1_server', '$2']),
-			Match(['neverallow', '{ domain -$1_client -$1_server }', '$2', 'hwservice_manager'], equal=['find']),
+			Match(['neverallow', '{ domain -$1_client -$1_server }', '$2', 'hwservice_manager'],
+			      equal=['find']),
 		],
 		replace_named_macro,
 	),
