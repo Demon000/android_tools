@@ -672,7 +672,7 @@ def match_macro_rules(mld, match_results, macro, index, rules, matched_types):
 	match = macro.matches[index]
 	matched_rules = mld.get(match)
 
-	def call_again(new_rule):
+	def call_again(new_rule, new_macro, merged_matched_types):
 		new_rules = rules[:] + [new_rule]
 
 		match_macro_rules(mld, match_results, new_macro, index + 1,
@@ -682,7 +682,7 @@ def match_macro_rules(mld, match_results, macro, index, rules, matched_types):
 		merged_matched_types = matched_types[:]
 		new_macro = macro
 
-		call_again(None)
+		call_again(None, new_macro, merged_matched_types)
 
 	for rule in matched_rules:
 		new_matched_types = match.extract_matched_indices(rule)
@@ -692,7 +692,7 @@ def match_macro_rules(mld, match_results, macro, index, rules, matched_types):
 
 		new_macro = macro.fill_matched_indices(new_matched_types)
 
-		call_again(rule)
+		call_again(rule, new_macro, merged_matched_types)
 
 
 def match_and_replace_macro(mld, macro):
