@@ -214,19 +214,34 @@ def construct_expanded_base_typeattr(rule):
 
 	and_tokens = rule.varargs[and_index + 1:not_index]
 	not_tokens = rule.varargs[not_index + 1:]
+	and_tokens_len = len(and_tokens)
+	not_tokens_len = len(not_tokens)
 
 	type_str = ''
-	type_str += '{'
 
-	if and_tokens:
+	if not and_tokens_len and not_tokens_len:
+		type_str += '~'
+
+		if not_tokens_len != 1:
+			type_str += '{'
+			type_str += ' '
+
+		type_str += ' '.join(not_tokens)
+
+		if not_tokens_len != 1:
+			type_str += ' }'
+	elif and_tokens_len and not_tokens_len:
+		type_str += '{'
+
 		type_str += ' '
 		type_str += ' '.join(and_tokens)
 
-	if not_tokens:
 		type_str += ' -'
 		type_str += ' -'.join(not_tokens)
 
-	type_str += ' }'
+		type_str += ' }'
+	else:
+		raise Exception(f'Unhandled base type {rule}')
 
 	return type_str
 
