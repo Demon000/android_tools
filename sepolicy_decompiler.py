@@ -94,8 +94,9 @@ class SepolicyDecompiler:
 		if file_name is None:
 			file_name = type_name
 
-		file_name = file_name[:(255 - 3)]
-		file_name += '.te'
+		extension = '.te'
+		file_name = file_name[:(255 - len(extension))]
+		file_name += extension
 
 		path = os.path.join(self.output_path, file_name)
 

@@ -163,7 +163,9 @@ def construct_expanded_base_typeattr(rule):
 	else:
 		raise Exception(f'Unhandled base type {rule}')
 
-	return type_str
+	main_type = '_'.join(rule.varargs)
+
+	return type_str, main_type
 
 def replace_typeattributeset_base_typeattr(mld, match_result):
 	rules = match_result.rules
@@ -174,8 +176,9 @@ def replace_typeattributeset_base_typeattr(mld, match_result):
 
 	if len(rule.varargs) == 1 and rule.varargs[0] == 'all':
 		type_str = '*'
+		main_type = 'all'
 	else:
-		type_str = construct_expanded_base_typeattr(rule)
+		type_str, main_type = construct_expanded_base_typeattr(rule)
 
 	type = rule.parts[1]
 
@@ -193,7 +196,7 @@ def replace_typeattributeset_base_typeattr(mld, match_result):
 
 			new_parts.append(part)
 
-		new_rule = Rule(new_parts, rule.varargs, main_type=type)
+		new_rule = Rule(new_parts, rule.varargs, main_type=main_type)
 		mld.add(new_rule)
 
 def replace_typeattributeset(mld, match_result):
