@@ -82,6 +82,18 @@ class SepolicyDecompiler:
 
 		return file_name
 
+	def write_rule_to_file(self, rule, file):
+		s = str(rule)
+		if s == '':
+			return
+
+		file.write(s)
+		file.write('\n');
+
+	def write_rules_to_file(self, type, file):
+		for rule in type.rules:
+			self.write_rule_to_file(rule, file)
+
 	def output_type(self, type_name):
 		type = self.types[type_name]
 
@@ -101,7 +113,7 @@ class SepolicyDecompiler:
 		path = os.path.join(self.output_path, file_name)
 
 		with open(path, 'a') as file:
-			type.write_rules_to_file(file)
+			self.write_rules_to_file(type, file)
 
 	def output_types(self):
 		for type_name in self.types:

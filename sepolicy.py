@@ -195,15 +195,3 @@ class Type:
 
 	def add_rule(self, rule):
 		self.rules.append(rule)
-
-	def write_rule_to_file(self, rule, file):
-		s = str(rule)
-		if s == '':
-			return
-
-		file.write(s)
-		file.write('\n');
-
-	def write_rules_to_file(self, file):
-		for rule in self.rules:
-			self.write_rule_to_file(rule, file)
