@@ -147,6 +147,13 @@ class SepolicyDecompiler:
 		path = os.path.join(self.output_path, 'hwservice_contexts')
 		shutil.copy(self.hwservice_contexts_path, path)
 
+	def output_genfs_contexts(self):
+		path = os.path.join(self.output_path, 'genfs_contexts')
+
+		with open(path, 'w') as file:
+			for rule in self.genfs_contexts_rules:
+				self.write_rule_to_file(rule, file)
+
 	def create_output_dir(self):
 		os.makedirs(self.output_path, exist_ok=True)
 
@@ -168,3 +175,4 @@ class SepolicyDecompiler:
 		self.output_property_contexts()
 		self.output_file_contexts()
 		self.output_hwservice_contexts()
+		self.output_genfs_contexts()
