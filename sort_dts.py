@@ -18,7 +18,14 @@ def sort_props(prop):
     return str(prop)
 
 def sort_nodes(node):
-    return node.name
+    addr_del = '@'
+    if addr_del in node.name:
+        parts = node.name.split(addr_del)
+        name = parts[0]
+        addr = int(parts[1], 16)
+        return (name, addr)
+
+    return (node.name, 0)
 
 def recurse_node(node):
     node._props.sort(key=sort_props)
