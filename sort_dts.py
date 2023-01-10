@@ -14,6 +14,12 @@ with open(dts_file, 'r') as f:
 
 dt = fdt.parse_dts(dts_text)
 
+def for_each_node(node, fn):
+    fn(node)
+
+    for child_node in node.nodes:
+        for_each_node(child_node, fn)
+
 def sort_props(prop):
     return str(prop)
 
@@ -27,14 +33,12 @@ def sort_nodes(node):
 
     return (node.name, 0)
 
-def recurse_node(node):
+def sort_node(node):
     node._props.sort(key=sort_props)
     node._nodes.sort(key=sort_nodes)
 
-    for child_node in node.nodes:
-        recurse_node(child_node)
+for_each_node(dt.root, sort_node)
 
-recurse_node(dt.root)
 
 with open(out_dts_file, 'w') as f:
     f.write(dt.to_dts())
