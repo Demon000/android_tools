@@ -39,6 +39,13 @@ def sort_node(node):
 
 for_each_node(dt.root, sort_node)
 
+def print_node_phandle(node):
+    if node.exist_property('phandle'):
+        phandle_prop = node.get_property('phandle')
+        print(node.path, node.name, hex(phandle_prop.value))
+    node.remove_property('phandle')
+
+for_each_node(dt.root, print_node_phandle)
 
 with open(out_dts_file, 'w') as f:
     f.write(dt.to_dts())
