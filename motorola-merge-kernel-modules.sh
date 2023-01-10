@@ -10,6 +10,8 @@ BASE_NAME="$2"
 
 base_name=""
 
+git fetch "$MODULES_REPO_NAME"
+
 merge_repo() {
 	if [ -z "$base_name" ]; then
 		echo "No paths found"
@@ -17,8 +19,6 @@ merge_repo() {
 	fi
 
 	branch_name="$BASE_NAME-$base_name"
-
-	git fetch "$MODULES_REPO_NAME" "$branch_name"
 
 	echo "Merging branch with name $branch_name"
 
