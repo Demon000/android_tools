@@ -14,11 +14,14 @@ with open(dts_file, 'r') as f:
 
 dt = fdt.parse_dts(dts_text)
 
-def for_each_node(node, fn):
+def for_each_node(node, fn, max_recurse_level=-1, recurse_level=0):
+    if max_recurse_level != -1 and recurse_level > max_recurse_level:
+        return
+
     fn(node)
 
     for child_node in node.nodes:
-        for_each_node(child_node, fn)
+        for_each_node(child_node, fn, max_recurse_level, recurse_level + 1)
 
 def sort_props(prop):
     return str(prop)
