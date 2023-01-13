@@ -23,18 +23,21 @@ def for_each_node(node, fn, max_recurse_level=-1, recurse_level=0):
     for child_node in node.nodes:
         for_each_node(child_node, fn, max_recurse_level, recurse_level + 1)
 
-def sort_props(prop):
-    return str(prop)
-
-def sort_nodes(node):
+def split_node_name(name):
     addr_del = '@'
-    if addr_del in node.name:
-        parts = node.name.split(addr_del)
+    if addr_del in name:
+        parts = name.split(addr_del)
         name = parts[0]
         addr = int(parts[1], 16)
         return (name, addr)
 
-    return (node.name, 0)
+    return (name, 0)
+
+def sort_props(prop):
+    return str(prop)
+
+def sort_nodes(node):
+    return split_node_name(node.name)
 
 def sort_node(node):
     node._props.sort(key=sort_props)
