@@ -121,7 +121,7 @@ def node_is_fragment(node):
     return node.name.startswith('fragment@')
 
 def dt_extract_overlays(dt):
-    overlays = []
+    overlay_nodes = {}
 
     for node in dt.root.nodes:
         if not node_is_fragment(node):
@@ -130,16 +130,36 @@ def dt_extract_overlays(dt):
         overlay_target = node.get_property('target')
         assert type(overlay_target) == PropWordsWithPhandles
         overlay_label = overlay_target.get_phandle_name(0)
+
+        if overlay_label not in overlay_nodes:
+            overlay_nodes[overlay_label] = []
+
         overlay_node = node.get_subnode('__overlay__')
         overlay_node.set_name(f'&{overlay_label}')
 
-        overlays.append(overlay_node)
+        overlay_nodes[overlay_label].append(overlay_node)
+        names = [node.name for node in overlay_nodes[overlay_label]]
 
     dt.root._nodes = [node for node in dt.root._nodes if not node_is_fragment(node)]
 
-    overlays.sort(key=sort_nodes)
+    merged_overlays = []
 
-    return overlays
+    for label in overlay_nodes:
+        overlays = overlay_nodes[label]
+        first_overlay = overlays[0]
+
+        for overlay in overlays[1:]:
+            first_overlay.merge(overlay, replace=True)
+
+        sort_node(first_overlay)
+
+        merged_overlays.append(first_overlay)
+
+    merged_overlays.sort(key=sort_nodes)
+
+    return merged_overlays
+
+
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
