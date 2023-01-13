@@ -50,10 +50,8 @@ def dt_fill_fixups(dt):
 
     for prop in fixups_node.props:
         for value in prop.data:
-            value_parts = value.split(':')
-            node_path = value_parts[0]
-            prop_name = value_parts[1]
-            prop_data_index = int(value_parts[2])
+            node_path, prop_name, prop_data_index = value.split(':')
+            prop_data_index = int(prop_data_index)
 
             replace_phandle_with_label(node_path, prop_name, prop_data_index,
                 prop.name)
