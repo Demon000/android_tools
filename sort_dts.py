@@ -15,6 +15,9 @@ with open(dts_file, 'r') as f:
 dt = fdt.parse_dts(dts_text)
 
 def for_each_node(node, fn, max_recurse_level=-1, recurse_level=0):
+    if node is None:
+        return
+
     if max_recurse_level != -1 and recurse_level > max_recurse_level:
         return
 
