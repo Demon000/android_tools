@@ -82,6 +82,9 @@ def replace_phandle_with_label(path, name, addr, label=None, phandle_labels_map=
 
 def dt_fill_fixups(dt):
     fixups_node = dt.root.get_subnode('__fixups__')
+    if fixups_node is None:
+        return
+
     fixups_props = {}
 
     for prop in fixups_node.props:
@@ -103,6 +106,9 @@ def dt_fill_symbols(dt):
     local_fixups_node = dt.root.get_subnode(LOCAL_FIXUPS)
     symbols_node = dt.root.get_subnode(SYMBOLS)
     phandle_labels_map = {}
+
+    if local_fixups_node is None or symbols_node is None:
+        return
 
     for prop in symbols_node.props:
         assert type(prop) == fdt.PropStrings
