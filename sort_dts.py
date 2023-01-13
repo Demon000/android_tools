@@ -60,13 +60,10 @@ def dt_fill_fixups(dt):
 
 def dt_fill_symbols(dt):
     SYMBOLS = '__symbols__'
-    LOCAL_FIXUPS = '__local_fixups__'
-
-    local_fixups_node = dt.root.get_subnode(LOCAL_FIXUPS)
     symbols_node = dt.root.get_subnode(SYMBOLS)
     phandle_labels_map = {}
 
-    if local_fixups_node is None or symbols_node is None:
+    if symbols_node is None:
         return
 
     for prop in symbols_node.props:
@@ -87,6 +84,14 @@ def dt_fill_symbols(dt):
 
         node.set_label(label)
 
+    dt.root.remove_subnode(SYMBOLS)
+
+    LOCAL_FIXUPS = '__local_fixups__'
+    local_fixups_node = dt.root.get_subnode(LOCAL_FIXUPS)
+
+    if local_fixups_node is None:
+        return
+
     def replace_phandles_with_label(node):
         for prop in node.props:
             abs_node_path = prop.path.removeprefix(f'/{LOCAL_FIXUPS}')
@@ -98,7 +103,6 @@ def dt_fill_symbols(dt):
     for_each_node(local_fixups_node, replace_phandles_with_label)
 
     dt.root.remove_subnode(LOCAL_FIXUPS)
-    dt.root.remove_subnode(SYMBOLS)
 
 def sort_props(prop):
     return str(prop)
