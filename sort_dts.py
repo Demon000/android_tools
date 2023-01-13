@@ -4,17 +4,6 @@ import re
 import sys
 import fdt
 
-if len(sys.argv) < 3:
-    sys.exit(1)
-
-dts_file = sys.argv[1]
-out_dts_file = sys.argv[2]
-
-with open(dts_file, 'r') as f:
-    dts_text = f.read()
-
-dt = fdt.parse_dts(dts_text)
-
 def for_each_node(node, fn, max_recurse_level=-1, recurse_level=0):
     if node is None:
         return
@@ -87,10 +76,11 @@ def reindex_fixups(node):
     for prop in node.props:
         reindex_fixup(prop)
 
-for_each_node(dt.root, reindex_fragment, max_recurse_level=1)
-for_each_node(dt.root.get_subnode('__local_fixups__'), reindex_fragment, max_recurse_level=1)
-for_each_node(dt.root.get_subnode('__fixups__'), reindex_fixups, max_recurse_level=1)
-for_each_node(dt.root.get_subnode('__symbols__'), reindex_fixups, max_recurse_level=1)
+def dt_reindex_fragments(dt):
+    for_each_node(dt.root, reindex_fragment, max_recurse_level=1)
+    for_each_node(dt.root.get_subnode('__local_fixups__'), reindex_fragment, max_recurse_level=1)
+    for_each_node(dt.root.get_subnode('__fixups__'), reindex_fixups, max_recurse_level=1)
+    for_each_node(dt.root.get_subnode('__symbols__'), reindex_fixups, max_recurse_level=1)
 
 def sort_props(prop):
     return str(prop)
@@ -102,7 +92,23 @@ def sort_node(node):
     node._props.sort(key=sort_props)
     node._nodes.sort(key=sort_nodes)
 
-for_each_node(dt.root, sort_node)
+def dt_sort_nodes(dt):
+    for_each_node(dt.root, sort_node)
 
-with open(out_dts_file, 'w') as f:
-    f.write(dt.to_dts())
+if __name__ == '__main__':
+    if len(sys.argv) < 3:
+        sys.exit(1)
+
+    dts_file = sys.argv[1]
+    out_dts_file = sys.argv[2]
+
+    with open(dts_file, 'r') as f:
+        dts_text = f.read()
+
+    dt = fdt.parse_dts(dts_text)
+
+    dt_reindex_fragments(dt)
+    dt_sort_nodes(dt)
+
+    with open(out_dts_file, 'w') as f:
+        f.write(dt.to_dts())
