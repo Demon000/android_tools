@@ -49,16 +49,6 @@ def for_each_node(node, fn, *args, max_recurse_level=-1, recurse_level=0, **kwar
             recurse_level=recurse_level + 1,
             **kwargs)
 
-def split_node_name(name):
-    addr_del = '@'
-    if addr_del in name:
-        parts = name.split(addr_del)
-        name = parts[0]
-        addr = int(parts[1], 16)
-        return (name, addr)
-
-    return (name, 0)
-
 def replace_phandle_with_label(path, name, addr, label=None, phandle_labels_map=None):
     index = addr // 4
     node = dt.get_node(path)
@@ -145,7 +135,7 @@ def sort_props(prop):
     return str(prop)
 
 def sort_nodes(node):
-    return split_node_name(node.name)
+    return node.name
 
 def sort_node(node):
     node._props.sort(key=sort_props)
