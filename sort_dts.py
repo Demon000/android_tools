@@ -41,7 +41,6 @@ def replace_phandle_with_label(path, name, addr, label=None, phandle_labels_map=
 
     new_prop.set_phandle_name(index, label)
 
-
 def dt_fill_fixups(dt):
     fixups_node = dt.root.get_subnode('__fixups__')
     if fixups_node is None:
