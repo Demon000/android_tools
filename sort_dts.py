@@ -159,7 +159,11 @@ def dt_extract_overlays(dt):
 
     return merged_overlays
 
+def remove_phandle(node):
+    node.remove_property('phandle')
 
+def dt_remove_phandles(dt):
+    for_each_node(dt.root, remove_phandle)
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:
@@ -183,6 +187,7 @@ if __name__ == '__main__':
 
     dt_fill_fixups(dt)
     dt_fill_symbols(dt)
+    dt_remove_phandles(dt)
     dt_sort_nodes(dt)
     overlays = dt_extract_overlays(dt)
 
