@@ -113,6 +113,30 @@ def sort_node(node):
 def dt_sort_nodes(dt):
     for_each_node(dt.root, sort_node)
 
+def node_is_fragment(node):
+    return node.name.startswith('fragment@')
+
+def dt_extract_overlays(dt):
+    overlays = []
+
+    for node in dt.root.nodes:
+        if not node_is_fragment(node):
+            continue
+
+        overlay_target = node.get_property('target')
+        assert type(overlay_target) == PropWordsWithPhandles
+        overlay_label = overlay_target.get_phandle_name(0)
+        overlay_node = node.get_subnode('__overlay__')
+        overlay_node.set_name(f'&{overlay_label}')
+
+        overlays.append(overlay_node)
+
+    dt.root._nodes = [node for node in dt.root._nodes if not node_is_fragment(node)]
+
+    overlays.sort(key=sort_nodes)
+
+    return overlays
+
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         sys.exit(1)
@@ -136,6 +160,13 @@ if __name__ == '__main__':
     dt_fill_fixups(dt)
     dt_fill_symbols(dt)
     dt_sort_nodes(dt)
+    overlays = dt_extract_overlays(dt)
 
     with open(out_dts_file, 'w') as f:
         f.write(dt.to_dts())
+
+        if overlays:
+            f.write('\n')
+            for overlay in overlays:
+                f.write(overlay.to_dts())
+                f.write('\n')
