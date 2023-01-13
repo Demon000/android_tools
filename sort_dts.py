@@ -121,10 +121,16 @@ if __name__ == '__main__':
     dts_file = sys.argv[1]
     out_dts_file = sys.argv[2]
 
-    with open(dts_file, 'r') as f:
-        dts_text = f.read()
+    if dts_file.endswith('.dts'):
+        with open(dts_file, 'r') as f:
+            dts_text = f.read()
 
-    dt = fdt.parse_dts(dts_text)
+        dt = fdt.parse_dts(dts_text)
+    elif dts_file.endswith('.dtb'):
+        with open(dts_file, 'rb') as f:
+            dtb_bin = f.read()
+
+        dt = fdt.parse_dtb(dtb_bin)
 
     dt_reindex_fragments(dt)
     dt_sort_nodes(dt)
