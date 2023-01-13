@@ -4,17 +4,21 @@ import re
 import sys
 import fdt
 
-def for_each_node(node, fn, max_recurse_level=-1, recurse_level=0):
+def for_each_node(node, fn, *args, max_recurse_level=-1, recurse_level=0, **kwargs):
     if node is None:
         return
 
     if max_recurse_level != -1 and recurse_level > max_recurse_level:
         return
 
-    fn(node)
+    fn(node, *args, **kwargs)
 
     for child_node in node.nodes:
-        for_each_node(child_node, fn, max_recurse_level, recurse_level + 1)
+        for_each_node(
+            child_node, fn, *args,
+            max_recurse_level=max_recurse_level,
+            recurse_level=recurse_level + 1,
+            **kwargs)
 
 def split_node_name(name):
     addr_del = '@'
@@ -27,8 +31,6 @@ def split_node_name(name):
     return (name, 0)
 
 FRAGMENT_NAME = 'fragment'
-fragment_index = 0
-fragment_mapping = {}
 
 def gen_fragment_name(index):
     return f'{FRAGMENT_NAME}@{index:x}'
@@ -36,10 +38,7 @@ def gen_fragment_name(index):
 def is_fragment_name(name):
     return name == FRAGMENT_NAME
 
-def reindex_fragment(node):
-    global fragment_index
-    global fragment_mapping
-
+def reindex_fragment(node, fragment_index, fragment_mapping):
     name, index = split_node_name(node.name)
     if not is_fragment_name(name):
         return
@@ -52,7 +51,7 @@ def reindex_fragment(node):
 
     node.set_name(gen_fragment_name(replacement_index))
 
-def reindex_fixup(prop):
+def reindex_fixup(prop, fragment_mapping):
     for i, data in enumerate(prop.data):
         parts = data.split('\\0')
 
@@ -70,17 +69,37 @@ def reindex_fixup(prop):
 
         prop.data[i] = '\\0'.join(parts)
 
-def reindex_fixups(node):
-    global fragment_mapping
-
+def reindex_fixups(node, fragment_mapping):
     for prop in node.props:
-        reindex_fixup(prop)
+        reindex_fixup(prop, fragment_mapping)
 
 def dt_reindex_fragments(dt):
-    for_each_node(dt.root, reindex_fragment, max_recurse_level=1)
-    for_each_node(dt.root.get_subnode('__local_fixups__'), reindex_fragment, max_recurse_level=1)
-    for_each_node(dt.root.get_subnode('__fixups__'), reindex_fixups, max_recurse_level=1)
-    for_each_node(dt.root.get_subnode('__symbols__'), reindex_fixups, max_recurse_level=1)
+    fragment_index = 0
+    fragment_mapping = {}
+    local_fixups_node = dt.root.get_subnode('__local_fixups__')
+    fixups_node = dt.root.get_subnode('__fixups__')
+    symbols_node = dt.root.get_subnode('__symbols__')
+
+    for_each_node(
+        dt.root,
+        reindex_fragment,
+        fragment_index,
+        fragment_mapping,
+        max_recurse_level=1)
+    for_each_node(
+        local_fixups_node,
+        reindex_fragment,
+        fragment_index,
+        fragment_mapping,
+        max_recurse_level=1)
+    for_each_node(fixups_node,
+        reindex_fixups,
+        fragment_mapping,
+        max_recurse_level=1)
+    for_each_node(symbols_node,
+        reindex_fixups,
+        fragment_mapping,
+        max_recurse_level=1)
 
 def sort_props(prop):
     return str(prop)
