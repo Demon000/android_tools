@@ -8,17 +8,20 @@ class PropWordsWithPhandles(fdt.PropWords):
     def __init__(self, name, *args):
         super().__init__(name, *args)
 
-        self.phandle_names = {}
+        self.__phandle_names = {}
 
     def set_phandle_name(self, i, name):
-        if i in self.phandle_names:
+        if i in self.__phandle_names:
             raise ValueError()
 
-        self.phandle_names[i] = name
+        self.__phandle_names[i] = name
+
+    def get_phandle_name(self, i):
+        return self.__phandle_names[i]
 
     def get_dts_value(self, i, word):
-        if i in self.phandle_names:
-            return f'&{self.phandle_names[i]}'
+        if i in self.__phandle_names:
+            return f'&{self.__phandle_names[i]}'
         else:
             return '0x{:X}'.format(word)
 
