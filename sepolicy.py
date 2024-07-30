@@ -64,18 +64,18 @@ def parts_main_type(parts):
 
 
 def sanitize_type(type):
-	type = re.sub('_\d+_0$', '', type)
+	type = re.sub(r'(_\d+)+$', '', type)
 	return type
 
 
 def extract_type(type):
-	type = re.sub('^vendor_', '', type)
-	type = re.sub('_exec$', '', type)
-	type = re.sub('_client$', '', type)
-	type = re.sub('_server$', '', type)
-	type = re.sub('_default$', '', type)
-	type = re.sub('_hwservice$', '', type)
-	type = re.sub('_qti$', '', type)
+	type = re.sub(r'^vendor_', '', type)
+	type = re.sub(r'_exec$', '', type)
+	type = re.sub(r'_client$', '', type)
+	type = re.sub(r'_server$', '', type)
+	type = re.sub(r'_default$', '', type)
+	type = re.sub(r'_hwservice$', '', type)
+	type = re.sub(r'_qti$', '', type)
 	return type
 
 
