@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import re
+import os
 import sys
 import fdt
 from fdt_extra import *
@@ -166,11 +167,15 @@ def dt_remove_phandles(dt):
     for_each_node(dt.root, remove_phandle)
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 2:
         sys.exit(1)
 
     dts_file = sys.argv[1]
-    out_dts_file = sys.argv[2]
+
+    if len(sys.argv) == 3:
+        out_dts_file = sys.argv[2]
+    else:
+        out_dts_file = None
 
     if dts_file.endswith('.dts') or dts_file.endswith('.dtsi'):
         with open(dts_file, 'r') as f:
@@ -182,6 +187,11 @@ if __name__ == '__main__':
             dtb_bin = f.read()
 
         dt = fdt.parse_dtb(dtb_bin)
+
+        if out_dts_file is None:
+            dts_file_without_ext = os.path.splitext(dts_file)[0]
+            out_dts_file = dts_file_without_ext + '.dts'
+
     else:
         raise ValueError(f'Invalid file extension')
 
