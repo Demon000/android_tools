@@ -31,6 +31,10 @@ class SepolicyDecompiler:
 
 		parts = [sanitize_type(part) for part in parts]
 
+		if parts[0] == 'genfscon':
+			if parts[2].startswith('"') and parts[2].endswith('"'):
+				parts[2] = parts[2][1:len(parts[2]) - 1]
+
 		rule = Rule(parts)
 
 		if parts[0] == 'genfscon':
