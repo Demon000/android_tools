@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-import re
 import os
 import sys
 import fdt
-from fdt_extra import *
+from fdt import PropStrings, PropWords
+from fdt_extra import PropWordsWithPhandles
 
 def for_each_node(node, fn, *args, max_recurse_level=-1, recurse_level=0, **kwargs):
     if node is None:
@@ -23,21 +23,26 @@ def for_each_node(node, fn, *args, max_recurse_level=-1, recurse_level=0, **kwar
             **kwargs)
 
 def replace_phandle_with_label(path, name, addr, label=None, phandle_labels_map=None):
+    print(f'Replace phandle {path} {name} {addr} {label}')
     index = addr // 4
     node = dt.get_node(path)
     ref_prop = node.get_property(name)
 
-    if type(ref_prop) == fdt.PropWords:
+    if isinstance(ref_prop, PropWords):
         new_prop = PropWordsWithPhandles(name, *ref_prop.data)
         node.remove_property(name)
         node.append(new_prop)
-    elif type(ref_prop) == PropWordsWithPhandles:
+    elif isinstance(ref_prop, PropWordsWithPhandles):
         new_prop = ref_prop
     else:
         raise ValueError()
 
     if not label:
         phandle = new_prop.data[index]
+        if phandle not in phandle_labels_map:
+            print(f'Invalid phandle {phandle}')
+            return
+
         label = phandle_labels_map[phandle][0]
 
     new_prop.set_phandle_name(index, label)
@@ -47,10 +52,9 @@ def dt_fill_fixups(dt):
     if fixups_node is None:
         return
 
-    fixups_props = {}
-
     for prop in fixups_node.props:
         for value in prop.data:
+            print(f'Fixup prop {prop} {value}')
             node_path, prop_name, prop_data_index = value.split(':')
             prop_data_index = int(prop_data_index)
 
@@ -68,7 +72,7 @@ def dt_fill_symbols(dt):
         return
 
     for prop in symbols_node.props:
-        assert type(prop) == fdt.PropStrings
+        assert isinstance(prop, PropStrings)
 
         label = prop.name
         path = prop.value
@@ -98,6 +102,7 @@ def dt_fill_symbols(dt):
             abs_node_path = prop.path.removeprefix(f'/{LOCAL_FIXUPS}')
 
             for value in prop.data:
+                print(f'Fixup prop {prop} {value}')
                 replace_phandle_with_label(abs_node_path, prop.name, value,
                     phandle_labels_map=phandle_labels_map)
 
@@ -129,7 +134,7 @@ def dt_extract_overlays(dt):
             continue
 
         overlay_target = node.get_property('target')
-        assert type(overlay_target) == PropWordsWithPhandles
+        assert isinstance(overlay_target, PropWordsWithPhandles)
         overlay_label = overlay_target.get_phandle_name(0)
 
         if overlay_label not in overlay_nodes:
@@ -139,7 +144,6 @@ def dt_extract_overlays(dt):
         overlay_node.set_name(f'&{overlay_label}')
 
         overlay_nodes[overlay_label].append(overlay_node)
-        names = [node.name for node in overlay_nodes[overlay_label]]
 
     dt.root._nodes = [node for node in dt.root._nodes if not node_is_fragment(node)]
 
@@ -193,7 +197,7 @@ if __name__ == '__main__':
             out_dts_file = dts_file_without_ext + '.dts'
 
     else:
-        raise ValueError(f'Invalid file extension')
+        raise ValueError('Invalid file extension')
 
     dt_fill_fixups(dt)
     dt_fill_symbols(dt)
