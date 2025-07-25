@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import builtins
 import re
 from glob import glob
@@ -17,12 +19,15 @@ from rules import (
     GenRule,
     Rule,
 )
+from utils import (
+    Color,
+    TemporaryWorkingDirectory,
+    builtin_print,
+    color_print,
+    import_module,
+)
 
-from utils import TemporaryWorkingDirectory, import_module
-
-IMPL_MODULE_START = "@"
-ABS_MODULE_START = "//"
-BUILD_BAZEL_FILE_NAME = "BUILD.bazel"
+BUILD_BAZEL_FILE_NAME = 'BUILD.bazel'
 
 
 class depset_impl(set):
@@ -69,123 +74,119 @@ def native_glob_impl(
     return files
 
 
-T = TypeVar("T", bound=Rule)
+T = TypeVar('T', bound=Rule)
 
 
 class BazelParser:
     failed_imports: Set[str] = set()
     mapped_imports: Set[str] = set()
+    missing_targets: Set[str] = set()
 
     def __init__(
         self,
-        android_root: Optional[str],
         module_paths_map: Dict[str, str],
         flags_map: Dict[str, str],
-        debug: Optional[bool],
-        print_bazel_output: Optional[bool],
+        debug: Optional[bool] = None,
+        print_bazel_output: Optional[bool] = None,
     ):
-        self.android_root = android_root
         self.module_paths_map = module_paths_map
         self.flags_map = flags_map
         self.debug = debug
         self.print_bazel_output = print_bazel_output
         self.targets: Dict[str, Rule] = {}
-        self.original_print = builtins.print
 
         self.overriden_rules = {
-            "attr": SimpleNamespace(
+            'attr': SimpleNamespace(
                 {
-                    "label": self.dummy("attr.label"),
-                    "int": self.dummy("attr.int"),
-                    "string_list": self.dummy("attr.string_list"),
+                    'label': self.dummy('attr.label'),
+                    'int': self.dummy('attr.int'),
+                    'string_list': self.dummy('attr.string_list'),
                 }
             ),
-            "hermetic_toolchain": SimpleNamespace(
+            'hermetic_toolchain': SimpleNamespace(
                 {
-                    "type": self.dummy("hermetic_toolchain.type"),
+                    'type': self.dummy('hermetic_toolchain.type'),
                 }
             ),
-            "native": SimpleNamespace(
+            'native': SimpleNamespace(
                 {
-                    "alias": self.add_target_impl(Alias),
-                    "genrule": self.add_target_impl(GenRule),
-                    "glob": self.native_glob_wrapper,
-                    "config_setting": self.dummy("native.config_setting"),
-                    "filegroup": self.dummy("native.filegroup"),
+                    'alias': self.add_target_impl(Alias),
+                    'genrule': self.add_target_impl(GenRule),
+                    'glob': self.native_glob_wrapper,
+                    'config_setting': self.dummy('native.config_setting'),
+                    'filegroup': self.dummy('native.filegroup'),
                 }
             ),
-            "checkpatch": self.dummy("checkpatch"),
-            "write_file": self.dummy("write_file"),
-            "filegroup": self.dummy("filegroup"),
-            "rule": self.rule_impl(),
-            "define_common_kernels": self.dummy("define_common_kernels"),
-            "kernel_abi": self.dummy("kernel_abi"),
-            "kernel_abi_dist": self.dummy("kernel_abi_dist"),
-            "kernel_build": self.dummy("kernel_build"),
-            "kernel_build_config": self.dummy("kernel_build_config"),
-            "kernel_modules_install": self.dummy("kernel_modules_install"),
-            "kernel_images": self.dummy("kernel_images"),
-            "merged_kernel_uapi_headers": self.dummy("merged_kernel_uapi_headers"),
-            "kernel_uapi_headers_cc_library": self.dummy(
-                "kernel_uapi_headers_cc_library"
+            'checkpatch': self.dummy('checkpatch'),
+            'write_file': self.dummy('write_file'),
+            'filegroup': self.dummy('filegroup'),
+            'rule': self.rule_impl(),
+            'define_common_kernels': self.dummy('define_common_kernels'),
+            'kernel_abi': self.dummy('kernel_abi'),
+            'kernel_abi_dist': self.dummy('kernel_abi_dist'),
+            'kernel_build': self.dummy('kernel_build'),
+            'kernel_build_config': self.dummy('kernel_build_config'),
+            'kernel_modules_install': self.dummy('kernel_modules_install'),
+            'kernel_images': self.dummy('kernel_images'),
+            'merged_kernel_uapi_headers': self.dummy(
+                'merged_kernel_uapi_headers'
             ),
-            "kernel_compile_commands": self.dummy("kernel_compile_commands"),
-            "copy_to_dist_dir": self.dummy("copy_to_dist_dir"),
-            "super_image": self.dummy("super_image"),
-            "unsparsed_image": self.dummy("unsparsed_image"),
-            "hermetic_genrule": self.dummy("hermetic_genrule"),
-            "X86_64_OUTS": X86_64_OUTS,
-            "aarch64_outs": aarch64_outs,
-            "bool_flag": self.add_target_impl(BoolFlag),
-            "config_setting": self.add_target_impl(ConfigSetting),
-            "alias": self.add_target_impl(Alias),
-            "genrule": self.add_target_impl(GenRule),
-            "ddk_headers": self.add_target_impl(DdkHeaders),
-            "ddk_submodule": self.add_target_impl(DdkSubModule),
-            "ddk_module": self.add_target_impl(DdkModule),
-            "depset": self.depset_wrapper,
-            "select": self.select_impl,
-            "struct": self.struct_impl,
-            "package": self.package_impl,
-            "load": self.load_impl,
-            "glob": self.glob_impl,
-            "fail": self.fail_impl,
+            'kernel_uapi_headers_cc_library': self.dummy(
+                'kernel_uapi_headers_cc_library'
+            ),
+            'kernel_compile_commands': self.dummy('kernel_compile_commands'),
+            'copy_to_dist_dir': self.dummy('copy_to_dist_dir'),
+            'super_image': self.dummy('super_image'),
+            'unsparsed_image': self.dummy('unsparsed_image'),
+            'hermetic_genrule': self.dummy('hermetic_genrule'),
+            'X86_64_OUTS': X86_64_OUTS,
+            'aarch64_outs': aarch64_outs,
+            'bool_flag': self.add_target_impl(BoolFlag),
+            'config_setting': self.add_target_impl(ConfigSetting),
+            'alias': self.add_target_impl(Alias),
+            'genrule': self.add_target_impl(GenRule),
+            'ddk_headers': self.add_target_impl(DdkHeaders),
+            'ddk_submodule': self.add_target_impl(DdkSubModule),
+            'ddk_module': self.add_target_impl(DdkModule),
+            'depset': self.depset_wrapper,
+            'select': self.select_impl,
+            'struct': self.struct_impl,
+            'package': self.package_impl,
+            'load': self.load_impl,
+            'glob': self.glob_impl,
+            'fail': self.fail_impl,
         }
 
         if not self.print_bazel_output:
-            self.overriden_rules["print"] = self.print_impl
+            self.overriden_rules['print'] = self.print_impl
 
     def map_module_to_path(self, module_name: str):
-        if module_name.startswith(IMPL_MODULE_START):
+        mapped_module_path = self.module_paths_map.get(module_name)
+        if mapped_module_path is None:
+            for module_name_repl, module_path in self.module_paths_map.items():
+                if (
+                    module_name.startswith(module_name_repl)
+                    and module_name[len(module_name_repl)] == '/'
+                ):
+                    trimmed_module_name = module_name[
+                        len(module_name_repl) + 1 :
+                    ]
+                    mapped_module_path = path.join(
+                        module_path, trimmed_module_name
+                    )
+                    break
+
+        if mapped_module_path is None:
             return None
 
-        assert module_name.startswith(ABS_MODULE_START)
-        module_name = module_name[len(ABS_MODULE_START) :]
+        if module_name not in self.mapped_imports:
+            color_print(
+                f'Mapped {module_name} to {mapped_module_path}',
+                color=Color.GREEN,
+            )
+            self.mapped_imports.add(module_name)
 
-        mapped_module_path = None
-        for module_name_repl, module_path in self.module_paths_map.items():
-            if module_name == module_name_repl:
-                mapped_module_path = module_path
-                break
-
-            module_name_repl_dir = f"{module_name_repl}/"
-            if module_name.startswith(module_name_repl_dir):
-                trimmed_module_name = module_name[len(module_name_repl_dir) :]
-                mapped_module_path = path.join(module_path, trimmed_module_name)
-                break
-
-        if mapped_module_path is not None:
-            if mapped_module_path not in self.mapped_imports:
-                self.original_print(f"Mapped {module_name} to {mapped_module_path}")
-                self.mapped_imports.add(module_name)
-
-            module_name = mapped_module_path
-
-        if module_name.startswith(ABS_MODULE_START):
-            assert self.android_root is not None
-            module_name = path.join(self.android_root, module_name)
-
-        return module_name
+        return mapped_module_path
 
     def spec_resolution(self, spec: str, target_is_file=False):
         # There are multiple spec types
@@ -195,21 +196,27 @@ class BazelParser:
         # //path/to/module/root:file.bzl
         # //path/to/module/root:target
 
-        if ":" not in spec:
+        if ':' not in spec:
             return None, None
 
-        module_name, target_name = spec.split(":", 1)
+        module_name, target_name = spec.split(':', 1)
         if not module_name and target_is_file:
-            return "", target_name
+            return '', target_name
 
         module_path = self.map_module_to_path(module_name)
-        if not module_path:
-            return None, None
 
-        if target_is_file:
-            module_path = path.join(module_path, target_name)
-        else:
-            module_path = path.join(module_path, BUILD_BAZEL_FILE_NAME)
+        if module_path is not None:
+            if target_is_file:
+                module_path = path.join(module_path, target_name)
+            else:
+                module_path = path.join(module_path, BUILD_BAZEL_FILE_NAME)
+
+        if module_path is None or not path.exists(module_path):
+            if spec not in self.failed_imports:
+                color_print(f'Failed to load {spec}', color=Color.YELLOW)
+                self.failed_imports.add(spec)
+
+            return None, None
 
         return module_name, module_path
 
@@ -217,23 +224,17 @@ class BazelParser:
         dir_path = path.dirname(module_path)
         module_path = path.basename(module_path)
 
-        android_root = None
-        if self.android_root is not None:
-            android_root = path.relpath(self.android_root, dir_path)
         module_paths_map = {}
         for src_module_path, dst_module_path in self.module_paths_map.items():
             dst_module_path = path.relpath(dst_module_path, dir_path)
             module_paths_map[src_module_path] = dst_module_path
 
-        self.deinit()
-
         with TemporaryWorkingDirectory(dir_path):
             bazel_parser = BazelParser(
-                android_root,
                 module_paths_map,
                 self.flags_map,
-                self.debug,
-                self.print_bazel_output,
+                debug=self.debug,
+                print_bazel_output=self.print_bazel_output,
             )
 
             bazel_parser.parse(module_path)
@@ -248,24 +249,33 @@ class BazelParser:
         assert module is not None
         return module
 
-    def _lookup_target(self, target_spec: str):
-        target = self.targets[target_spec]
+    def _lookup_target(self, spec: str):
+        target = self.targets.get(spec)
 
         if not isinstance(target, Alias):
             return target
 
-        module_name, _ = self.spec_resolution(target_spec)
-        return self.targets[f"{module_name}:{target.actual}"]
+        module_name, _ = self.spec_resolution(spec)
+        assert module_name is not None
 
-    def lookup_target(self, target_spec: str) -> Rule:
-        if target_spec in self.targets:
-            return self._lookup_target(target_spec)
+        return self.targets[f'{module_name}:{target.actual}']
 
-        module_name, module_path = self.spec_resolution(target_spec)
-        if module_path:
+    def lookup_target(self, spec: str) -> Rule:
+        target = self._lookup_target(spec)
+        if target is not None:
+            return target
+
+        module_name, module_path = self.spec_resolution(spec)
+        if module_path is not None:
             self.parse_module(module_name, module_path)
 
-        return self._lookup_target(target_spec)
+        target = self._lookup_target(spec)
+        if target is None and spec not in self.missing_targets:
+            if spec not in self.missing_targets:
+                color_print(f'Failed to find target {spec}', color=Color.RED)
+                self.missing_targets.add(spec)
+
+        return target
 
     def lookup_targets(self, t: type[T]) -> List[T]:
         found_targets = set()
@@ -280,56 +290,52 @@ class BazelParser:
         file: Optional[TextIOWrapper] = None,
         **kwargs,
     ):
-        if file is not None and file.name == "<stderr>":
-            self.original_print(*args, file=file, **kwargs)
+        if file is not None and file.name == '<stderr>':
+            builtin_print(*args, file=file, **kwargs)
 
     def select_impl(self, d: Dict[str, any]):
-        default_value = None
+        if self.debug:
+            builtin_print('select', d)
 
+        default_value = None
         for cond_spec, cond_value in d.items():
-            if cond_spec == "//conditions:default":
+            if cond_spec == '//conditions:default':
                 default_value = cond_value
                 continue
 
-            if cond_spec in self.flags_map:
-                return cond_value
-
-            module_name, module_path = self.spec_resolution(cond_spec)
-            if not module_path or not path.exists(module_path):
-                self.original_print(f"Failed to load {cond_spec}")
-                continue
-
-            self.parse_module(module_name, module_path)
-
-            if cond_spec not in self.targets:
-                self.original_print(f"Failed to find config {cond_spec}")
-                continue
-
             config_setting = self.lookup_target(cond_spec)
+            if config_setting is None:
+                continue
+
             assert isinstance(config_setting, ConfigSetting)
 
             assert len(config_setting.flag_values) == 1
+            for (
+                flag_spec,
+                flag_expected_value,
+            ) in config_setting.flag_values.items():
+                if flag_spec not in self.flags_map:
+                    continue
 
-            for flag_spec, flag_expected_value in config_setting.flag_values.items():
                 flag = self.lookup_target(flag_spec)
-                if isinstance(flag, BoolFlag):
-                    flag_expected_value = BoolFlag.parse_value(flag_expected_value)
-                    if flag.name not in self.flags_map:
-                        continue
+                if flag is None:
+                    continue
 
-                    flag_value = self.flags_map[flag.name]
-                    flag_value = BoolFlag.parse_value(flag_value)
+                assert isinstance(flag, BoolFlag)
 
-                    if flag_value == flag_expected_value:
-                        return cond_value
-                else:
-                    assert False
+                flag_expected_value = BoolFlag.parse_value(flag_expected_value)
+
+                flag_value = self.flags_map[flag.name]
+                flag_value = BoolFlag.parse_value(flag_value)
+
+                if flag_value == flag_expected_value:
+                    return cond_value
 
         return default_value
 
     def struct_impl(self, **kwargs):
         if self.debug:
-            self.original_print("struct", kwargs)
+            builtin_print('struct', kwargs)
 
         s = SimpleNamespace()
         for k, v in kwargs.items():
@@ -339,7 +345,7 @@ class BazelParser:
 
     def package_impl(self, *args, **kwargs):
         if self.debug:
-            self.original_print("package", args, kwargs)
+            builtin_print('package', args, kwargs)
 
     def load_impl(
         self,
@@ -348,11 +354,10 @@ class BazelParser:
         **mapped_names: Dict[str, str],
     ):
         if self.debug:
-            self.original_print("load", file_spec, names)
+            builtin_print('load', file_spec, names, mapped_names)
 
         _, module_path = self.spec_resolution(file_spec, target_is_file=True)
-        if not module_path or not path.exists(module_path):
-            self.original_print(f"Failed to load {file_spec}")
+        if not module_path:
             return
 
         module = self.import_module(module_path)
@@ -361,24 +366,24 @@ class BazelParser:
 
         for name, src_name in mapped_names.items():
             if name in self.overriden_rules:
-                self.original_print(f"Skipped overriden rule {name}")
+                builtin_print(f'Skipped overriden rule {name}')
                 continue
 
             value = getattr(module, src_name)
             setattr(builtins, name, value)
 
-    def add_target(self, target: Rule, module_name=""):
-        assert target.name not in self.targets, f"Target {target.name} already exists"
+    def add_target(self, target: Rule, module_name=''):
+        assert target.name not in self.targets, (
+            f'Target {target.name} already exists'
+        )
 
-        self.targets[f"{module_name}:{target.name}"] = target
+        self.targets[f'{module_name}:{target.name}'] = target
         if not module_name:
             self.targets[target.name] = target
 
     def add_target_impl(self, t: type[T]):
         def _add_target_impl(**data):
             target = t(**data)
-            if self.debug:
-                self.original_print(target)
             self.add_target(target)
 
         return _add_target_impl
@@ -386,29 +391,29 @@ class BazelParser:
     def dummy(self, name: str):
         def dummy_impl(**data):
             if self.debug:
-                self.original_print(name)
-                self.original_print(data)
-                self.original_print()
+                builtin_print(name)
+                builtin_print(data)
+                builtin_print()
 
         return dummy_impl
 
     def rule_impl(self, **data):
         if self.debug:
-            self.original_print("rule")
-            self.original_print(data)
-            self.original_print()
+            builtin_print('rule')
+            builtin_print(data)
+            builtin_print()
 
         def rule_callable(**data):
             if self.debug:
-                self.original_print("rule_callable")
-                self.original_print(data)
-                self.original_print()
+                builtin_print('rule_callable')
+                builtin_print(data)
+                builtin_print()
 
             def rule_inner_callable(**data):
                 if self.debug:
-                    self.original_print("rule_inner_callable")
-                    self.original_print(data)
-                    self.original_print()
+                    builtin_print('rule_inner_callable')
+                    builtin_print(data)
+                    builtin_print()
 
             return rule_inner_callable
 
@@ -419,7 +424,7 @@ class BazelParser:
 
     def glob_impl(self, globs: List[str]):
         if self.debug:
-            self.original_print("glob", globs)
+            builtin_print('glob', globs)
 
         found_files = []
         for g in globs:
@@ -430,7 +435,7 @@ class BazelParser:
 
     def depset_wrapper(self, data: List[str]):
         if self.debug:
-            self.original_print("depset", data)
+            builtin_print('depset', data)
 
         data.sort()
 
@@ -438,7 +443,7 @@ class BazelParser:
 
     def native_glob_wrapper(self, *args, **kwargs):
         if self.debug:
-            self.original_print("native_glob", args, kwargs)
+            builtin_print('native_glob', args, kwargs)
 
         return native_glob_impl(*args, **kwargs)
 
@@ -447,17 +452,32 @@ class BazelParser:
             setattr(builtins, key, value)
 
     def evaluate_genrule(self, genrule: GenRule):
-        location_pattern = r"\$\(\s*location\s+(//[^\)]+)\s*\)"
+        def replace(match: re.Match[str]):
+            spec = match.group(1)
+            _, module_path = self.spec_resolution(spec, target_is_file=True)
+            if module_path is None:
+                if spec not in self.missing_targets:
+                    color_print(
+                        f'Failed to find target {spec}',
+                        color=Color.RED,
+                    )
+                    self.missing_targets.add(spec)
 
-        def replace(match):
-            location_param = match.group(1)
-            module_name, module_path = self.spec_resolution(location_param)
-            print(module_name, module_path)
-            return location_param
+                return match.group(0)
 
-        print("before", genrule.cmd)
+            color_print(
+                f'Replaced {match.group(0)} with {module_path}',
+                color=Color.GREEN,
+            )
+
+            return module_path
+
+        if genrule.cmd_bash is not None:
+            assert genrule.cmd is None
+            genrule.cmd = genrule.cmd_bash
+
+        location_pattern = r'\$\((?:location|locations) ([^\)]+)\)'
         genrule.cmd = re.sub(location_pattern, replace, genrule.cmd)
-        print("after", genrule.cmd)
 
     def evaluate_genrules(self):
         genrules = self.lookup_targets(GenRule)
@@ -467,7 +487,4 @@ class BazelParser:
     def parse(self, file_path: str):
         self.init()
         import_module(file_path)
-        self.deinit()
-
-    def deinit(self):
-        builtins.print = self.original_print
+        self.evaluate_genrules()

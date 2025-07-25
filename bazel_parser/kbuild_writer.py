@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from typing import TextIO
+
 from parser_impl import BazelParser, DdkModule, DdkSubModule, GenRule
 
 
@@ -11,25 +14,25 @@ def write_submodule_kbuild(
         return
 
     module_obj_name = submodule.out
-    assert module_obj_name.endswith(".ko")
-    module_obj_name = module_obj_name[: -len(".ko")]
+    assert module_obj_name.endswith('.ko')
+    module_obj_name = module_obj_name[: -len('.ko')]
 
-    o.write(f"obj-m += {module_obj_name}.o\n")
+    o.write(f'obj-m += {module_obj_name}.o\n')
 
     for src in submodule.srcs:
-        if src.startswith(":"):
+        if src.startswith(':'):
             target = bazel_parser.lookup_target(src)
             assert isinstance(target, GenRule)
-        elif src.endswith(".c"):
-            src = src[: -len(".c")] + ".o"
-            o.write(f"{module_obj_name}-y += {src}\n")
-        elif src.endswith(".h"):
+        elif src.endswith('.c'):
+            src = src[: -len('.c')] + '.o'
+            o.write(f'{module_obj_name}-y += {src}\n')
+        elif src.endswith('.h'):
             continue
         else:
             assert False, src
 
     if (
-        hasattr(submodule, "conditional_srcs")
+        hasattr(submodule, 'conditional_srcs')
         and submodule.conditional_srcs is not None
     ):
         # TODO
@@ -38,30 +41,30 @@ def write_submodule_kbuild(
     cflags = []
     if submodule.local_defines is not None:
         for define in submodule.local_defines:
-            cflags.append(f"-D{define}")
-    if hasattr(submodule, "includes") and submodule.includes is not None:
+            cflags.append(f'-D{define}')
+    if hasattr(submodule, 'includes') and submodule.includes is not None:
         for include in submodule.includes:
-            cflags.append(f"-I$(src)/{include}")
-    if hasattr(submodule, "copts") and submodule.copts is not None:
+            cflags.append(f'-I$(src)/{include}')
+    if hasattr(submodule, 'copts') and submodule.copts is not None:
         cflags += submodule.copts
 
     if cflags:
-        o.write(f"CFLAGS_{module_obj_name}.o := \\\n")
+        o.write(f'CFLAGS_{module_obj_name}.o := \\\n')
         for cflag in cflags:
-            o.write(f"\t{cflag}")
+            o.write(f'\t{cflag}')
             if cflag is not cflags[-1]:
-                o.write(" \\\n")
+                o.write(' \\\n')
             else:
-                o.write("\n")
+                o.write('\n')
 
-    o.write("\n")
+    o.write('\n')
 
 
 def _write_kbuild(o: TextIO, bazel_parser: BazelParser):
     ddk_modules = bazel_parser.lookup_targets(DdkModule)
 
     for ddk_module in ddk_modules:
-        soc, variant, _ = ddk_module.name.split("_", 2)
+        soc, variant, _ = ddk_module.name.split('_', 2)
 
         o.write(
             f"""
@@ -88,9 +91,9 @@ endif
         )
 
         if ddk_module != ddk_modules[-1]:
-            o.write("\n")
+            o.write('\n')
 
 
 def write_kbuild(kbuild_path: str, bazel_parser: BazelParser):
-    with open(kbuild_path, "w", encoding="utf-8") as o:
+    with open(kbuild_path, 'w', encoding='utf-8') as o:
         _write_kbuild(o, bazel_parser)

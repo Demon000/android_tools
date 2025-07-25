@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Dict, List, Optional
 
 
@@ -6,8 +8,8 @@ class Rule:
         self.name = name
 
     def __str__(self):
-        s = f"{self.__class__.__name__}:\n"
-        s += f"\tname: {self.name}\n"
+        s = f'{self.__class__.__name__}:\n'
+        s += f'\tname: {self.name}\n'
         return s
 
 
@@ -30,10 +32,10 @@ class DdkHeaders(Rule):
 
     def __str__(self):
         s = super().__str__()
-        s += f"\thdrs: {self.hdrs}\n"
-        s += f"\tincludes: {self.includes}\n"
-        s += f"\tvisibility: {self.visibility}\n"
-        s += f"\tlinux_includes: {self.linux_includes}\n"
+        s += f'\thdrs: {self.hdrs}\n'
+        s += f'\tincludes: {self.includes}\n'
+        s += f'\tvisibility: {self.visibility}\n'
+        s += f'\tlinux_includes: {self.linux_includes}\n'
         return s
 
 
@@ -70,17 +72,17 @@ class DdkModule(Rule):
 
     def __str__(self):
         s = super().__str__()
-        s += f"\tsrcs: {self.srcs}\n"
-        s += f"\tconditional_srcs: {self.conditional_srcs}\n"
-        s += f"\tlocal_defines: {self.local_defines}\n"
-        s += f"\tdeps: {self.deps}\n"
-        s += f"\thdrs: {self.hdrs}\n"
-        s += f"\tincludes: {self.includes}\n"
-        s += f"\tkconfig: {self.kconfig}\n"
-        s += f"\tdefconfig: {self.defconfig}\n"
-        s += f"\tkernel_build: {self.kernel_build}\n"
-        s += f"\tcopts: {self.copts}\n"
-        s += f"\tout: {self.out}\n"
+        s += f'\tsrcs: {self.srcs}\n'
+        s += f'\tconditional_srcs: {self.conditional_srcs}\n'
+        s += f'\tlocal_defines: {self.local_defines}\n'
+        s += f'\tdeps: {self.deps}\n'
+        s += f'\thdrs: {self.hdrs}\n'
+        s += f'\tincludes: {self.includes}\n'
+        s += f'\tkconfig: {self.kconfig}\n'
+        s += f'\tdefconfig: {self.defconfig}\n'
+        s += f'\tkernel_build: {self.kernel_build}\n'
+        s += f'\tcopts: {self.copts}\n'
+        s += f'\tout: {self.out}\n'
         return s
 
 
@@ -105,11 +107,11 @@ class DdkSubModule(Rule):
 
     def __str__(self):
         s = super().__str__()
-        s += f"\tsrcs: {self.srcs}\n"
-        s += f"\tout: {self.out}\n"
-        s += f"\tdeps: {self.deps}\n"
-        s += f"\tlocal_defines: {self.local_defines}\n"
-        s += f"\tkernel_build: {self.kernel_build}\n"
+        s += f'\tsrcs: {self.srcs}\n'
+        s += f'\tout: {self.out}\n'
+        s += f'\tdeps: {self.deps}\n'
+        s += f'\tlocal_defines: {self.local_defines}\n'
+        s += f'\tkernel_build: {self.kernel_build}\n'
         return s
 
 
@@ -135,11 +137,11 @@ class GenRule(Rule):
 
     def __str__(self):
         s = super().__str__()
-        s += f"\tcmd: {self.cmd}\n"
-        s += f"\tcmd_bash: {self.cmd_bash}\n"
-        s += f"\ttools: {self.tools}\n"
-        s += f"\tsrcs: {self.srcs}\n"
-        s += f"\touts: {self.outs}\n"
+        s += f'\tcmd: {self.cmd}\n'
+        s += f'\tcmd_bash: {self.cmd_bash}\n'
+        s += f'\ttools: {self.tools}\n'
+        s += f'\tsrcs: {self.srcs}\n'
+        s += f'\touts: {self.outs}\n'
         return s
 
 
@@ -160,9 +162,9 @@ class Alias(Rule):
 
     def __str__(self):
         s = super().__str__()
-        s += f"\tactual: {self.actual}\n"
-        s += f"\tdeprecation: {self.deprecation}\n"
-        s += f"\tvisibility: {self.visibility}\n"
+        s += f'\tactual: {self.actual}\n'
+        s += f'\tdeprecation: {self.deprecation}\n'
+        s += f'\tvisibility: {self.visibility}\n'
         return s
 
 
@@ -181,8 +183,8 @@ class BoolFlag(Rule):
 
     def __str__(self):
         s = super().__str__()
-        s += f"\tbuild_setting_default: {self.build_setting_default}\n"
-        s += f"\tvisibility: {self.visibility}\n"
+        s += f'\tbuild_setting_default: {self.build_setting_default}\n'
+        s += f'\tvisibility: {self.visibility}\n'
         return s
 
     @staticmethod
@@ -190,13 +192,13 @@ class BoolFlag(Rule):
         if isinstance(value, bool):
             return value
 
-        if value in ["0", "disabled", "false", "False"]:
+        if value in ['0', 'disabled', 'false', 'False']:
             return False
 
-        if value in ["1", "enabled", "true", "True"]:
+        if value in ['1', 'enabled', 'true', 'True']:
             return True
 
-        raise ValueError(f"Unknown bool {value}")
+        raise ValueError(f'Unknown bool {value}')
 
 
 class ConfigSetting(Rule):
@@ -214,6 +216,6 @@ class ConfigSetting(Rule):
 
     def __str__(self):
         s = super().__str__()
-        s += f"\tflag_values: {self.flag_values}\n"
-        s += f"\tvisibility: {self.visibility}\n"
+        s += f'\tflag_values: {self.flag_values}\n'
+        s += f'\tvisibility: {self.visibility}\n'
         return s
