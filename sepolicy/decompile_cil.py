@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2025 The LineageOS Project
+# SPDX-License-Identifier: Apache-2.0
+
+from __future__ import annotations
+
+from argparse import ArgumentParser
+from typing import List
+
+from cil import decompile_cil
+from classmap import Classmap
+from config import default_variables
+from macro import (
+    categorize_macros,
+    decompile_macros,
+    expand_macro_bodies,
+    macro_conditionals,
+    macro_name,
+    read_macros,
+    resolve_macro_paths,
+    sort_macros,
+    split_macros_text_name_body,
+)
+from match import match_macro_rules
+
+
+def print_macro_file_paths(macro_file_paths: List[str]):
+    for macro_path in macro_file_paths:
+        print(f'Loading macros from {macro_path}')
+
+
+def print_variable_ifelse(macros: List[str]):
+    handled_variable_macro_ifelse = [
+        'domain_trans',
+    ]
+
+    # Find conditional variables used in the input text
+    # Conditional variables can be specified, but we need to know if the
+    # macro arguments are used in them
+    for macro in macros:
+        if macro in handled_variable_macro_ifelse:
+            continue
+
+        conditional_variables = macro_conditionals(macro)
+        name = macro_name(macro)
+        for conditional_variable in conditional_variables:
+            if conditional_variable.startswith('$'):
+                print(
+                    f'Macro {name} contains variable ifelse: {conditional_variable}'
+                )
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser(
+        prog='decompile_cil.py',
+        description='Decompile CIL files',
+    )
+    parser.add_argument('cil', nargs='+')
+    parser.add_argument(
+        '-m',
+        '--macros',
+        action='append',
+        default=[],
+        help='Path to directories or files containing macros',
+    )
+    parser.add_argument(
+        '-c',
+        '--classmap',
+        action='store',
+        help='Path to selinux classmap (external/selinux/python/sepolgen/src/share/perm_map)',
+    )
+    parser.add_argument(
+        '-v',
+        '--var',
+        action='append',
+        default=[],
+        help='Variable used when expanding macros',
+    )
+
+    args = parser.parse_args()
+    assert args.classmap is not None
+    assert args.macros
+
+    variables = {**default_variables}
+
+    for kv in args.var:
+        k, v = kv.split('=')
+        variables[k] = v
+
+    mld = decompile_cil(args.cil)
+
+    macro_file_paths = resolve_macro_paths(args.macros)
+
+    print_macro_file_paths(macro_file_paths)
+
+    input_text, macros_text = read_macros(macro_file_paths)
+
+    print_variable_ifelse(macros_text)
+
+    expanded_macros_text = expand_macro_bodies(
+        input_text,
+        macros_text,
+        variables,
+    )
+    macros_name_body = split_macros_text_name_body(expanded_macros_text)
+
+    expanded_macros, class_sets, perms, ioctls, ioctl_defines = (
+        categorize_macros(macros_name_body)
+    )
+
+    # classmap is needed to sort classes and perms to match the compiled
+    # output
+    classmap = Classmap(args.classmap)
+
+    macros_name_rules = decompile_macros(classmap, expanded_macros)
+
+    sort_macros(macros_name_rules)
+
+    for name, rules in macros_name_rules:
+        match_macro_rules(mld, name, rules)
