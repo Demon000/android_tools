@@ -6,8 +6,14 @@ from __future__ import annotations
 from typing import List
 
 from classmap import Classmap
-from rule import Rule, RuleType, flatten_parts, remove_ioctl_zeros, unpack_line
-from type import parts_list
+from rule import (
+    Rule,
+    RuleType,
+    flatten_parts,
+    parts_list,
+    remove_ioctl_zeros,
+    unpack_line,
+)
 
 
 def is_allow_process_sigchld(parts: parts_list):

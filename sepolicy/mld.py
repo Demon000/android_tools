@@ -50,6 +50,8 @@ class MultiLevelDict(Generic[T]):
         self.__data: multi_level_type = {}
 
     def add(self, keys: List[str], value: T):
+        # TODO: allow all kinds of hashable keys
+
         data = self.__data
 
         for i, key in enumerate(keys):

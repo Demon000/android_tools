@@ -6,13 +6,15 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Dict, List, Set
 
-from rule import Rule, RuleType, unpack_line
-from type import (
-    Type,
+from rule import (
+    Rule,
+    RuleType,
     expand_base_typeattr,
     flatten_typeattr_varargs,
     is_conditional_typeattr,
+    is_type_generated,
     parts_list,
+    unpack_line,
 )
 
 
@@ -124,7 +126,7 @@ class CilRule(Rule):
 
         if parts[0] == RuleType.TYPEATTRIBUTE:
             # Remove generated typeattribute as it does not map to a source rule
-            if Type.is_generated(parts[1]):
+            if is_type_generated(parts[1]):
                 return []
 
             # Rename typeattribute to attribute to match source

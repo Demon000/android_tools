@@ -10,8 +10,7 @@ from typing import Dict, List, Union
 
 from cil_rule import CilRule
 from mld import MultiLevelDict
-from rule import Rule
-from type import Type, parts_list
+from rule import Rule, is_type_generated, parts_list
 
 
 def replace_generated_part(m: Dict[str, str], part: Union[parts_list, str]):
@@ -19,7 +18,7 @@ def replace_generated_part(m: Dict[str, str], part: Union[parts_list, str]):
     if not isinstance(part, str):
         return part
 
-    if not Type.is_generated(part):
+    if not is_type_generated(part):
         return part
 
     if part not in m:
