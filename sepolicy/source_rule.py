@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import List
 
 from classmap import Classmap
-from rule import Rule, RuleType, flatten_parts, unpack_line
+from rule import Rule, RuleType, flatten_parts, remove_ioctl_zeros, unpack_line
 from type import parts_list
 
 
@@ -103,8 +103,8 @@ class SourceRule(Rule):
                 assert parts[3] == 'ioctl'
                 if not isinstance(parts[4], list):
                     parts[4] = [parts[4]]
-                # TODO: remove extra zeros from ioctl numbers
-                rule = Rule(rule_type, parts[:4], parts[4])
+                varargs = remove_ioctl_zeros(parts[4])
+                rule = Rule(rule_type, parts[:4], varargs)
                 rules.append(rule)
             case RuleType.ATTRIBUTE:
                 assert len(parts) == 1, line

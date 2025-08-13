@@ -9,7 +9,7 @@ from re import Pattern
 from typing import Dict, List, Optional, Self, Union
 
 from mld import MultiLevelDict, MultiLevelDictMatchData, MultiLevelDictMatcher
-from rule import OUT_OF_ORDER_RULE_TYPES, Rule, RuleType, macro_argument_regex
+from rule import Rule, RuleType, macro_argument_regex
 
 
 class RuleMatchData(MultiLevelDictMatchData):
@@ -79,14 +79,12 @@ def match_success_fn(
     matched_rules: List[Rule],
 ):
     assert isinstance(new_match_data, RuleMatchData), new_match_data
-    print('Matched', matched_rule, new_match_data.data())
     new_match_datas_rules.setdefault(new_match_data, matched_rules[:]).append(
         matched_rule
     )
 
 
 def is_value_match_fn(match_rule: Rule, rule: Rule):
-    print(rule.varargs, match_rule.varargs)
     return rule.varargs == match_rule.varargs
 
 
@@ -130,39 +128,6 @@ def is_index_match_fn(
     return new_match_data
 
 
-def macro_rule_match_next(
-    mld: MultiLevelDict,
-    rule: Rule,
-    matched_rules: List[Rule],
-):
-    print('Current rules: ')
-    for rule in matched_rules:
-        print(rule)
-    print()
-    last_rule = None
-    if len(matched_rules) >= 1:
-        last_rule = matched_rules[-1]
-
-    # If the rule we're looking for or the last rule is one of the out
-    # of order ones, walk the whole tree
-
-    if rule.rule_type in OUT_OF_ORDER_RULE_TYPES:
-        last_rule = None
-
-    if last_rule is not None and last_rule.rule_type in OUT_OF_ORDER_RULE_TYPES:
-        last_rule = None
-
-    print('Last rule', last_rule)
-
-    match_rule = None
-    if last_rule is not None:
-        match_rule = mld.next_value(last_rule)
-
-    print('Match rule', match_rule)
-
-    return match_rule
-
-
 def macro_rule_match(
     mld: MultiLevelDict,
     rule: Rule,
@@ -194,14 +159,7 @@ def macro_rule_match(
         match_success,
     )
 
-    match_rule = macro_rule_match_next(mld, rule, matched_rules)
-    match_rule = None
-    if match_rule is None:
-        mld.match(matcher, match_data)
-    else:
-        mld.match_value(match_rule, matcher, match_data)
-
-    print()
+    mld.match(matcher, match_data)
 
 
 def macro_rule_replace_match_data(rule: Rule, match_data: RuleMatchData):
@@ -227,10 +185,6 @@ def match_macro_rules(
     matched_macro_rules: List[Rule],
 ):
     print(f'Processing macro: {macro_name}')
-    print('Rules')
-    for rule in macro_rules:
-        print(rule)
-    print()
 
     match_datas_rules: Dict[RuleMatchData, List[Rule]] = {
         RuleMatchData(): [],
@@ -241,7 +195,7 @@ def match_macro_rules(
         new_match_datas_rules: Dict[RuleMatchData, List[Rule]] = {}
         for match_data, matched_rules in match_datas_rules.items():
             filled_rule = macro_rule_replace_match_data(macro_rule, match_data)
-            print(f'Filled macro rule: {filled_rule}', match_data.data())
+            # print(f'Filled macro rule: {filled_rule}', match_data.data())
 
             # Slim down the dictionary keys of match_datas while increasing the
             # number of rules stored in each list
@@ -252,11 +206,12 @@ def match_macro_rules(
                 matched_rules,
                 new_match_datas_rules,
             )
+
         if not new_match_datas_rules:
             print('No matches for rule', macro_rule)
+            print()
             return
 
-        # TODO: exit if this ends up empty
         match_datas_rules = new_match_datas_rules
 
     for match_data, match_data_rules in match_datas_rules.items():
@@ -277,9 +232,8 @@ def match_macro_rules(
                 # macro
                 # Do not error out if the rule that couldn't be removed is
                 # a typeattribute
-                # if match_data_rule.rule_type != RuleType.TYPEATTRIBUTE:
-                #     raise e
-                pass
+                if match_data_rule.rule_type != RuleType.TYPEATTRIBUTE:
+                    raise e
 
         # Extract match_data values sorted based on their arg index
         raw_match_data = match_data.data()

@@ -67,6 +67,10 @@ def unpack_line(
     return current[0] if current else []
 
 
+def remove_ioctl_zeros(ioctls: List[str]):
+    return list(map(lambda i: hex(int(i, base=16)), ioctls))
+
+
 class RuleType(StrEnum):
     ALLOW = 'allow'
     ALLOWXPERM = 'allowxperm'
@@ -81,17 +85,6 @@ class RuleType(StrEnum):
     TYPE = 'type'
     TYPE_TRANSITION = 'type_transition'
     TYPEATTRIBUTE = 'typeattribute'
-
-
-OUT_OF_ORDER_RULE_TYPES = set(
-    [
-        RuleType.EXPANDATTRIBUTE.value,
-        RuleType.TYPE.value,
-        RuleType.TYPEATTRIBUTE.value,
-        RuleType.TYPE_TRANSITION.value,
-        RuleType.ATTRIBUTE.value,
-    ]
-)
 
 
 class Rule:

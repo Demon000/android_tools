@@ -48,56 +48,8 @@ class MultiLevelDictMatcher(Generic[T]):
 class MultiLevelDict(Generic[T]):
     def __init__(self):
         self.__data: multi_level_type = {}
-        self.__list: List[Optional[T]] = []
-        self.__data_keys: Dict[T, List[str]] = {}
-        self.__data_index: Dict[T, Optional[int]] = {}
-        self.__removed_values = 0
-
-    def __len__(self):
-        return len(self.__list) - self.__removed_values
-
-    def __iter__(self):
-        for value in self.__list:
-            if value is None:
-                continue
-
-            yield value
-
-    def index(self, value: T):
-        return self.__data_index[value]
-
-    def at(self, index: Optional[int]):
-        assert index is not None
-
-        if index >= len(self.__list):
-            return None
-
-        return self.__list[index]
-
-    def next_value(self, value: T):
-        index = self.index(value)
-        next_index = index + 1
-        return self.at(next_index)
-
-    def _add_to_list(self, keys: List[str], value: T):
-        self.__list.append(value)
-        index = len(self.__list) - 1
-        self.__data_index[value] = index
-        self.__data_keys[value] = keys
-
-    def _remove_from_list(self, value: T):
-        index = self.index(value)
-        if index is None:
-            raise ValueError('Value not found')
-
-        self.__list[index] = None
-        self.__data_index[value] = None
-        self.__data_keys[value] = None
-        self.__removed_values += 1
 
     def add(self, keys: List[str], value: T):
-        self._add_to_list(keys, value)
-
         data = self.__data
 
         for i, key in enumerate(keys):
@@ -125,7 +77,6 @@ class MultiLevelDict(Generic[T]):
             data.pop(key)
 
     def remove(self, keys: List[str], value: T):
-        self._remove_from_list(value)
         return self._remove(self.__data, keys, value)
 
     def _match_list(
@@ -194,36 +145,6 @@ class MultiLevelDict(Generic[T]):
         match_data: MultiLevelDictMatchData,
     ):
         self._match(self.__data, matcher, 0, match_data)
-
-    def match_value(
-        self,
-        value: T,
-        matcher: MultiLevelDictMatcher,
-        match_data: MultiLevelDictMatchData,
-    ):
-        value_keys = self.__data_keys[value]
-
-        for level, key in enumerate(value_keys):
-            match_level_key = matcher.match_indices[level]
-            if match_level_key is not None:
-                if match_level_key == key:
-                    continue
-
-                return
-
-            match_data = matcher.is_index_match_fn(
-                level,
-                key,
-                match_data,
-            )
-
-            if match_data is None:
-                return
-
-        if not matcher.is_value_match_fn(value):
-            return
-
-        matcher.match_success_fn(value, match_data)
 
     def __str__(self):
         return json.dumps(self.__data, indent=4, default=str)

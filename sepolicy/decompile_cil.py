@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
     sort_macros(macros_name_rules)
 
-    print(len(mld))
+    # print(len(mld))
 
     matched_macro_rules: List[Rule] = []
     for name, rules in macros_name_rules:
@@ -129,7 +129,7 @@ if __name__ == '__main__':
         match_macro_rules(mld, name, rules, matched_macro_rules)
 
     print(len(matched_macro_rules))
-    print(len(mld))
+    # print(len(mld))
 
     # for rule in mld:
     #     print(rule)

@@ -23,6 +23,15 @@ def is_conditional_typeattr(varargs: parts_list):
 
 
 def expand_base_typeattr(varargs: parts_list):
+    # TODO
+    # Find out why
+    # neverallow { domain -$1 -crash_dump userdebug_or_eng(`-llkd') -runas_app -simpleperf } $1:process ptrace;
+    #
+    # behaves like
+    # neverallow { domain -crash_dump userdebug_or_eng(`-llkd') -runas_app -simpleperf -$1 } $1:process ptrace;
+    #
+    # Example:
+    # (typeattributeset base_typeattr_748_31_0 ((and (domain) ((not (crash_dump_31_0 runas_app_31_0 simpleperf_31_0 soterservice_app_31_0))))))
     s = ''
     if varargs[0] == 'and' and len(varargs) == 3 and varargs[2][0] == 'not':
         s += '{'
@@ -31,7 +40,12 @@ def expand_base_typeattr(varargs: parts_list):
         for n in varargs[2][1]:
             s += f' -{n}'
         s += ' }'
-    elif varargs[0] == 'and' and len(varargs) == 3 and len(varargs[1]) == 1 and len(varargs[2]) == 1:
+    elif (
+        varargs[0] == 'and'
+        and len(varargs) == 3
+        and len(varargs[1]) == 1
+        and len(varargs[2]) == 1
+    ):
         # typeattribute { system_property_type && vendor_property_type } system_and_vendor_property_type;
         s += '{ '
         s += varargs[1][0]
@@ -54,7 +68,6 @@ def expand_base_typeattr(varargs: parts_list):
         assert False, varargs
 
     return s
-
 
 VERSION_SUFFIXES = set(
     [

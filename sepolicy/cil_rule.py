@@ -132,6 +132,13 @@ class CilRule(Rule):
             # while attribute rules expand to typeattribute
             parts[0] = RuleType.ATTRIBUTE.value
         elif parts[0] == CilRuleType.TYPEATTRIBUTESET:
+            # TODO: remove version of types
+            # theorethically the version exists, but if expandtypeattribute
+            # is set to true then a single-value typeattributeset will
+            # cause expansion
+            # Example:
+            # (expandtypeattribute (netutils_wrapper_31_0) true)
+            # (typeattributeset netutils_wrapper_31_0 (netutils_wrapper))
             flattened_varargs = flatten_typeattr_varargs(parts[2])
 
             if is_conditional_typeattr(flattened_varargs):
@@ -197,12 +204,8 @@ class CilRule(Rule):
                 new_parts = parts[:2] + [parts[2][2]]
             case RuleType.TYPE_TRANSITION:
                 assert len(parts) in [4, 5], line
-                print(parts)
                 varargs = parts[3:-1]
-                print(varargs)
                 new_parts = parts[:3] + [parts[-1]]
-                print(new_parts)
-                print()
             case RuleType.EXPANDATTRIBUTE:
                 assert len(parts[0]) == 1
                 varargs = []
