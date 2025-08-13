@@ -150,10 +150,8 @@ class CilRule(Rule):
 
             return []
         elif parts[0] == CilRuleType.TYPETRANSITION:
-            # Rename typetransition to type_transition to match source
             parts[0] = RuleType.TYPE_TRANSITION.value
         elif parts[0] == CilRuleType.EXPANDTYPEATTRIBUTE:
-            # Rename expandtypeattribute to expandattribute to match source
             parts[0] = RuleType.EXPANDATTRIBUTE.value
         elif parts[0] == CilRuleType.ALLOWX:
             parts[0] = RuleType.ALLOWXPERM
@@ -162,7 +160,7 @@ class CilRule(Rule):
         elif parts[0] == CilRuleType.DONTAUDITX:
             parts[0] = RuleType.DONTAUDITXPERM
 
-        rule_type = RuleType[parts[0].upper()]
+        rule_type = RuleType[parts[0].upper()].value
         parts = parts[1:]
 
         match rule_type:
@@ -199,8 +197,12 @@ class CilRule(Rule):
                 new_parts = parts[:2] + [parts[2][2]]
             case RuleType.TYPE_TRANSITION:
                 assert len(parts) in [4, 5], line
+                print(parts)
                 varargs = parts[3:-1]
-                new_parts = parts[:3] + parts[-1:]
+                print(varargs)
+                new_parts = parts[:3] + [parts[-1]]
+                print(new_parts)
+                print()
             case RuleType.EXPANDATTRIBUTE:
                 assert len(parts[0]) == 1
                 varargs = []

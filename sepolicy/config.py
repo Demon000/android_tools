@@ -1,14 +1,15 @@
 # SPDX-FileCopyrightText: 2025 The LineageOS Project
 # SPDX-License-Identifier: Apache-2.0
 
-default_variables = flags = {
+# Variables extracted from system/sepolicy/build/soong/policy.go
+default_variables = {
     'mls_num_sens': '1',
     'mls_num_cats': '1024',
     'target_arch': 'arm64',
     'target_with_asan': 'false',
     'target_with_dexpreopt': 'true',
     'target_with_native_coverage': 'false',
-    'target_build_variant': 'userdebug',
+    'target_build_variant': 'user',
     'target_full_treble': 'true',
     'target_compatible_property': 'true',
     'target_treble_sysprop_neverallow': 'true',

@@ -36,7 +36,7 @@ class SourceRule(Rule):
             raise ValueError(f'Invalid line: {line}')
 
         try:
-            rule_type = RuleType[parts[0].upper()]
+            rule_type = RuleType[parts[0].upper()].value
         except KeyError:
             raise ValueError(f'Invalid line: {line}')
 

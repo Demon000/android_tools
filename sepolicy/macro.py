@@ -3,9 +3,9 @@
 
 from __future__ import annotations
 
-from functools import partial
 import re
 import subprocess
+from functools import partial
 from itertools import chain
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -144,7 +144,8 @@ define(`quote_end', {quote_char("'")})
     # only once
     input_text += '\n'.join(macro_calls)
 
-    variables_args = [f'-D {k}={v}' for k, v in variables.items()]
+    variables_args = [('-D', f'{k}={v}') for k, v in variables.items()]
+    variables_args = [x for p in variables_args for x in p]
     output_text = subprocess.check_output(
         ['m4', *variables_args],
         input=input_text,
@@ -169,7 +170,7 @@ def categorize_macros(macros_name_body: List[Tuple[str, str]]):
 
     for name, body in macros_name_body:
         if not body:
-            print(f'{name}: empty')
+            print(f'Empty macro {name}')
             continue
 
         macro_tuple = (name, body)
@@ -248,13 +249,24 @@ def decompile_macros(classmap: Classmap, expanded_macros: List[str, str]):
         try:
             rules = list(chain.from_iterable(map(from_line_fn, lines)))
         except ValueError:
-            print(f'{name}: invalid macro')
+            print(f'Invalid macro {name}')
             continue
 
         expanded_macro_rules.append((name, rules))
 
     return expanded_macro_rules
 
+def macro_sort_key(macro: Tuple[str, List[Rule]]):
+    max_arity = 0
+    for rule in macro[1]:
+        rule_arity = rule.arity()
+        max_arity = max(max_arity, rule_arity)
+    return (-len(macro[1]), max_arity)
+
 
 def sort_macros(macros: List[Tuple[str, List[Rule]]]):
-    macros.sort(key=lambda kv: len(kv[1]), reverse=True)
+    # Sort by number of rules and arity, prefer macros with more rules and
+    # lower arity
+    # This is important for define_prop() wrappers that have the same number
+    # of rules as define_prop() but lower arity
+    macros.sort(key=macro_sort_key)

@@ -5,10 +5,11 @@
 from __future__ import annotations
 
 from argparse import ArgumentParser
+from pathlib import Path
 from typing import List
 
 from cil import decompile_cil
-from classmap import Classmap
+from classmap import SELINUX_INCLUDE_PATH, Classmap
 from config import default_variables
 from macro import (
     categorize_macros,
@@ -22,6 +23,7 @@ from macro import (
     split_macros_text_name_body,
 )
 from match import match_macro_rules
+from rule import Rule
 
 
 def print_macro_file_paths(macro_file_paths: List[str]):
@@ -38,11 +40,11 @@ def print_variable_ifelse(macros: List[str]):
     # Conditional variables can be specified, but we need to know if the
     # macro arguments are used in them
     for macro in macros:
-        if macro in handled_variable_macro_ifelse:
+        name = macro_name(macro)
+        if name in handled_variable_macro_ifelse:
             continue
 
         conditional_variables = macro_conditionals(macro)
-        name = macro_name(macro)
         for conditional_variable in conditional_variables:
             if conditional_variable.startswith('$'):
                 print(
@@ -64,10 +66,11 @@ if __name__ == '__main__':
         help='Path to directories or files containing macros',
     )
     parser.add_argument(
-        '-c',
-        '--classmap',
+        '-k',
+        '--kernel',
         action='store',
-        help='Path to selinux classmap (external/selinux/python/sepolgen/src/share/perm_map)',
+        required=True,
+        help='Path to kernel (external/selinux/python/sepolgen/src/share/perm_map)',
     )
     parser.add_argument(
         '-v',
@@ -78,7 +81,6 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
-    assert args.classmap is not None
     assert args.macros
 
     variables = {**default_variables}
@@ -110,11 +112,24 @@ if __name__ == '__main__':
 
     # classmap is needed to sort classes and perms to match the compiled
     # output
-    classmap = Classmap(args.classmap)
+    selinux_include_path = Path(args.kernel, SELINUX_INCLUDE_PATH)
+    classmap = Classmap(selinux_include_path)
 
     macros_name_rules = decompile_macros(classmap, expanded_macros)
 
     sort_macros(macros_name_rules)
 
+    print(len(mld))
+
+    matched_macro_rules: List[Rule] = []
     for name, rules in macros_name_rules:
-        match_macro_rules(mld, name, rules)
+        # if name != 'app_domain':
+        #     continue
+
+        match_macro_rules(mld, name, rules, matched_macro_rules)
+
+    print(len(matched_macro_rules))
+    print(len(mld))
+
+    # for rule in mld:
+    #     print(rule)

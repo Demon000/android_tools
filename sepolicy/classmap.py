@@ -3,55 +3,56 @@
 
 from __future__ import annotations
 
+import json
+import subprocess
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Dict, List
 
+SELINUX_INCLUDE_PATH = 'security/selinux/include/'
+SCRIPT_PATH = Path(__file__).parent.resolve()
+CLASSMAP_GENERATOR_C_PATH = Path(SCRIPT_PATH, 'classmap_generator.c')
 
-def parse_classmap_text(classmap_text: str):
-    classmap: Dict[str, List[str]] = {}
-    class_name = None
 
-    for line in classmap_text.splitlines():
-        if line.startswith('#'):
-            continue
+def extract_classmap(selinux_include_path: str):
+    with TemporaryDirectory() as tmp_path:
+        classmap_generator_path = Path(tmp_path, 'classmap_generator')
 
-        line = line.strip()
-        if not line:
-            continue
+        subprocess.check_call(
+            [
+                'gcc',
+                '-I',
+                selinux_include_path,
+                CLASSMAP_GENERATOR_C_PATH,
+                '-o',
+                classmap_generator_path,
+            ]
+        )
 
-        if line.startswith('class '):
-            parts = line.split()
-            assert len(parts) >= 2
-            class_name = parts[1]
-            classmap[class_name] = []
-            continue
-
-        if class_name is None:
-            continue
-
-        parts = line.split()
-        assert len(parts) >= 1
-        perm_name = parts[0]
-        classmap[class_name].append(perm_name)
-
-    return classmap
+        program_output = subprocess.check_output(
+            [
+                classmap_generator_path,
+            ]
+        )
+        return json.loads(program_output)
 
 
 class Classmap:
-    def __init__(self, classmap_path: str):
-        classmap_text = Path(classmap_path).read_text()
-        self.__class_perms_map = parse_classmap_text(classmap_text)
+    def __init__(self, selinux_include_path: str):
+        class_perms_map = extract_classmap(selinux_include_path)
+
         self.__class_index_map: Dict[str, int] = {}
         self.__class_perms_index_map: Dict[str, Dict[str, int]] = {}
 
-        for index, class_name in enumerate(self.__class_perms_map.keys()):
+        for index, class_name in enumerate(class_perms_map.keys()):
             self.__class_index_map[class_name] = index
 
-            for perm_index, perm_name in enumerate(
-                self.__class_perms_map[class_name]
-            ):
+            for perm_index, perm_name in enumerate(class_perms_map[class_name]):
                 self.__class_perms_index_map.setdefault(class_name, {})
                 self.__class_perms_index_map[class_name][perm_name] = perm_index
+
+    def class_perms(self, class_name: str):
+        return list(self.__class_perms_index_map[class_name].keys())
 
     def class_index(self, class_name: str):
         default = len(self.__class_index_map)
@@ -72,4 +73,11 @@ class Classmap:
         classes.sort(key=lambda c: self.class_index(c))
 
     def sort_perms(self, class_name: str, perms: List[str]):
+        if perms == ['*']:
+            perms[:] = self.class_perms(class_name)
+            return
+
+        # Remove duplicates
+        perms[:] = list(dict.fromkeys(perms))
+
         perms.sort(key=lambda p: self.perm_index(class_name, p))

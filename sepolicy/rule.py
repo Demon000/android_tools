@@ -83,10 +83,21 @@ class RuleType(StrEnum):
     TYPEATTRIBUTE = 'typeattribute'
 
 
+OUT_OF_ORDER_RULE_TYPES = set(
+    [
+        RuleType.EXPANDATTRIBUTE.value,
+        RuleType.TYPE.value,
+        RuleType.TYPEATTRIBUTE.value,
+        RuleType.TYPE_TRANSITION.value,
+        RuleType.ATTRIBUTE.value,
+    ]
+)
+
+
 class Rule:
     def __init__(
         self,
-        rule_type: RuleType,
+        rule_type: str,
         parts: List[str],
         varargs: List[str],
     ):
