@@ -24,6 +24,29 @@ def is_allow_process_sigchld(parts: parts_list):
     )
 
 
+def structure_conditional_type(parts: parts_list):
+    positive_types = []
+    negative_types = []
+
+    for part in parts:
+        if part.startswith('-'):
+            negative_types.append(part[1:])
+        else:
+            assert part[0].isalpha() or part[0] == '$', parts
+            positive_types.append(part)
+
+    t = []
+    if len(positive_types):
+        t.append('and')
+        t.append(frozenset(positive_types))
+
+    if len(negative_types):
+        t.append('not')
+        t.append(frozenset(negative_types))
+
+    return tuple(t)
+
+
 class SourceRule(Rule):
     @classmethod
     def from_line(cls, line: str, classmap: Classmap) -> List[Rule]:
@@ -64,19 +87,13 @@ class SourceRule(Rule):
             ):
                 assert len(parts) == 4, line
 
-                #
-                # TODO: store these as and / not pairs
-                # for easier matching with CIL rules
-                #
                 if isinstance(parts[0], list):
-                    joined_parts = ' '.join(parts[0])
-                    parts[0] = f'{{ {joined_parts} }}'
+                    parts[0] = structure_conditional_type(parts[0])
 
                 if isinstance(parts[1], list):
-                    joined_parts = ' '.join(parts[1])
-                    target_domains = [f'{{ {joined_parts} }}']
+                    target_domain = structure_conditional_type(parts[1])
                 else:
-                    target_domains = [parts[1]]
+                    target_domain = parts[1]
 
                 if isinstance(parts[2], list):
                     classes = parts[2]
@@ -86,12 +103,11 @@ class SourceRule(Rule):
                 classmap.sort_classes(classes)
 
                 varargs = list(flatten_parts(parts[3]))
-                for target_domain in target_domains:
-                    for class_name in classes:
-                        new_parts = [parts[0]] + [target_domain, class_name]
-                        classmap.sort_perms(class_name, varargs)
-                        rule = Rule(rule_type, new_parts, varargs)
-                        rules.append(rule)
+                for class_name in classes:
+                    new_parts = [parts[0]] + [target_domain, class_name]
+                    classmap.sort_perms(class_name, varargs)
+                    rule = Rule(rule_type, new_parts, varargs)
+                    rules.append(rule)
             case RuleType.TYPE_TRANSITION:
                 assert len(parts) in [4, 5], line
 

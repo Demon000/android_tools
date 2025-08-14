@@ -9,13 +9,36 @@ from typing import Dict, List, Set
 from rule import (
     Rule,
     RuleType,
-    expand_base_typeattr,
-    flatten_typeattr_varargs,
-    is_conditional_typeattr,
     is_type_generated,
     parts_list,
     unpack_line,
 )
+
+
+def is_conditional_typeattr(varargs: parts_list):
+    if isinstance(varargs[0], list):
+        vararg = varargs[0][0]
+    else:
+        vararg = varargs[0]
+
+    return vararg in ['and', 'not']
+
+
+def is_handwritten_typeattributeset(varargs: parts_list):
+    return isinstance(varargs[0], list)
+
+
+def structure_typeattr_varargs(varargs: parts_list):
+    if len(varargs) == 3:
+        assert isinstance(varargs[2], list)
+        varargs.append(varargs[2][1])
+        varargs[2] = varargs[2][0]
+
+    for i, vararg in enumerate(varargs):
+        if vararg in ['and', 'not']:
+            varargs[i + 1] = frozenset(varargs[i + 1])
+
+    return tuple(varargs)
 
 
 def is_valid_cil_line(line: str):
@@ -134,6 +157,13 @@ class CilRule(Rule):
             # while attribute rules expand to typeattribute
             parts[0] = RuleType.ATTRIBUTE.value
         elif parts[0] == CilRuleType.TYPEATTRIBUTESET:
+            # These weird statements are hand-written and part of
+            # technical_debt.cil
+            # We don't care enough to parse them, and some of them are
+            # not able to be expressed in module policy language
+            if is_handwritten_typeattributeset(parts[2]):
+                return []
+
             # TODO: remove version of types
             # theorethically the version exists, but if expandtypeattribute
             # is set to true then a single-value typeattributeset will
@@ -141,11 +171,10 @@ class CilRule(Rule):
             # Example:
             # (expandtypeattribute (netutils_wrapper_31_0) true)
             # (typeattributeset netutils_wrapper_31_0 (netutils_wrapper))
-            flattened_varargs = flatten_typeattr_varargs(parts[2])
 
-            if is_conditional_typeattr(flattened_varargs):
-                expanded_typeattr = expand_base_typeattr(flattened_varargs)
-                conditional_types_map.setdefault(parts[1], expanded_typeattr)
+            if is_conditional_typeattr(parts[2]):
+                varargs = structure_typeattr_varargs(parts[2])
+                conditional_types_map.setdefault(parts[1], varargs)
             else:
                 # Expand typeattributeset into multiple typeattribute rules
                 rules = []

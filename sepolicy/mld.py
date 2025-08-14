@@ -4,26 +4,13 @@
 from __future__ import annotations
 
 import json
-from typing import (
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-)
+from collections.abc import Hashable
+from typing import Callable, Dict, Generic, List, Optional, TypeVar, Union
 
 T = TypeVar('T')
 
 
-multi_level_type = Dict[str, Union['multi_level_type', List[T]]]
-
-
-match_value_fn_type = Callable[[T], bool]
-match_index_fn_type = Callable[[int, str], Tuple[bool, List[str]]]
-match_success_fn_type = Callable[[T, List[str]], None]
+multi_level_type = Dict[Hashable, Union['multi_level_type', List[T]]]
 
 
 class MultiLevelDictMatchData:
@@ -31,17 +18,23 @@ class MultiLevelDictMatchData:
         pass
 
 
+match_value_fn_type = Callable[[T], bool]
+match_success_fn_type = Callable[[T, List[Hashable]], None]
+match_keys_fn_type = Callable[
+    [Hashable, MultiLevelDictMatchData],
+    Optional[List[MultiLevelDictMatchData]],
+]
+
+
 class MultiLevelDictMatcher(Generic[T]):
     def __init__(
         self,
-        match_indices: List[Optional[str]],
+        match_keys: List[Hashable | match_keys_fn_type],
         is_value_match_fn: match_value_fn_type,
-        is_index_match_fn: match_index_fn_type,
         match_success_fn: match_success_fn_type,
     ):
-        self.match_indices = match_indices
+        self.match_keys = match_keys
         self.is_value_match_fn = is_value_match_fn
-        self.is_index_match_fn = is_index_match_fn
         self.match_success_fn = match_success_fn
 
 
@@ -49,7 +42,7 @@ class MultiLevelDict(Generic[T]):
     def __init__(self):
         self.__data: multi_level_type = {}
 
-    def add(self, keys: List[str], value: T):
+    def add(self, keys: List[Hashable], value: T):
         # TODO: allow all kinds of hashable keys
 
         data = self.__data
@@ -64,7 +57,7 @@ class MultiLevelDict(Generic[T]):
             if value not in data:
                 data.append(value)
 
-    def _remove(self, data: multi_level_type, keys: List[str], value: T):
+    def _remove(self, data: multi_level_type, keys: List[Hashable], value: T):
         key = keys[0]
 
         if key not in data:
@@ -78,7 +71,7 @@ class MultiLevelDict(Generic[T]):
         if not len(data[key]):
             data.pop(key)
 
-    def remove(self, keys: List[str], value: T):
+    def remove(self, keys: List[Hashable], value: T):
         return self._remove(self.__data, keys, value)
 
     def _match_list(
@@ -100,26 +93,18 @@ class MultiLevelDict(Generic[T]):
         level: int,
         match_data: MultiLevelDictMatchData,
     ):
-        match_level_key = matcher.match_indices[level]
-        if match_level_key is not None:
+        match_level_key = matcher.match_keys[level]
+
+        if not callable(match_level_key):
             if match_level_key in data.keys():
-                return [(match_level_key, match_data)]
+                yield (match_level_key, match_data)
 
-            return []
+            return
 
-        valid_keys_match_data = []
         for key in data.keys():
-            new_match_data = matcher.is_index_match_fn(
-                level,
-                key,
-                match_data,
-            )
-            if new_match_data is None:
-                continue
-
-            valid_keys_match_data.append((key, new_match_data))
-
-        return valid_keys_match_data
+            new_match_datas = match_level_key(key, match_data)
+            for new_match_data in new_match_datas:
+                yield (key, new_match_data)
 
     def _match(
         self,
