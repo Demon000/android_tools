@@ -6,6 +6,7 @@ from __future__ import annotations
 import re
 from collections.abc import Hashable
 from functools import partial
+from itertools import permutations
 from re import Pattern
 from typing import Dict, Iterable, List, Optional, Self
 
@@ -42,13 +43,6 @@ class RuleMatchData(MultiLevelDictMatchData):
 
     def __hash__(self):
         return hash(frozenset(self.__data.items()))
-
-
-def macro_rule_identity(
-    key: Hashable,
-    match_data: MultiLevelDictMatchData,
-):
-    return [match_data]
 
 
 def macro_rule_string_match_fn(
@@ -89,18 +83,24 @@ def macro_rule_iter_match_fn(
     key: Hashable,
     match_data: MultiLevelDictMatchData,
 ):
+    if len(key) != len(match_keys):
+        return []
+
+    match_datas = [match_data]
     for i, match_key in enumerate(match_keys):
-        if not callable(match_key):
-            if match_key == key[i]:
+        new_match_datas = []
+        for match_data in match_datas:
+            if not callable(match_key):
+                if match_key == key[i]:
+                    new_match_datas.append(match_data)
+
                 continue
 
-            return None
+            current_match_datas = match_key(key[i], match_data)
+            new_match_datas.extend(current_match_datas)
+        match_datas = new_match_datas
 
-        match_data = match_key(key[i], match_data)
-        if match_data is None:
-            return None
-
-    return match_data
+    return match_datas
 
 
 def macro_rule_frozenset_match_fn(
@@ -109,23 +109,24 @@ def macro_rule_frozenset_match_fn(
     match_data: MultiLevelDictMatchData,
 ):
     if not isinstance(key, frozenset):
-        return None
+        return []
 
-    new_match_datas = []
-    # sets have no order, match any with any
-    for part in key:
-        for match_key in match_keys:
-            match_datas = 
-            if not callable(match_key):
-                if match_key == part:
-                    new_match_datas.append(match_data)
-                continue
+    if len(key) != len(match_keys):
+        return []
 
-            match_datas = match_key(part, match_data)
-            new_match_datas.append(match_datas)
-            if match_data is None:
-                continue
+    # sets have no order, match all permutations
+    all_match_keys = permutations(match_keys)
+    match_datas = []
+    for permuted_match_keys in all_match_keys:
+        indexable_key = tuple(key)
+        current_match_datas = macro_rule_iter_match_fn(
+            permuted_match_keys,
+            indexable_key,
+            match_data,
+        )
+        match_datas.extend(current_match_datas)
 
+    return match_datas
 
 
 def macro_rule_get_string_match_key(part: str):

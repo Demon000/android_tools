@@ -21,7 +21,7 @@ def is_conditional_typeattr(varargs: parts_list):
     else:
         vararg = varargs[0]
 
-    return vararg in ['and', 'not']
+    return vararg in ['and', 'not', 'all']
 
 
 def is_handwritten_typeattributeset(varargs: parts_list):
@@ -29,13 +29,40 @@ def is_handwritten_typeattributeset(varargs: parts_list):
 
 
 def structure_typeattr_varargs(varargs: parts_list):
-    if len(varargs) == 3:
+    # ((and (...) ((not (...))))) -> (and (...) ((not (...))))
+    # ((not (...))) -> (not (...))
+
+    if len(varargs) == 1 and isinstance(varargs[0], list):
+        varargs = varargs[0]
+        assert varargs[0] in ['and', 'not', 'all'], varargs
+
+    # (and (...) ((not (...)))) -> (and (...) (not (...)))
+    if (
+        len(varargs) == 3
+        and isinstance(varargs[2], list)
+        and len(varargs[2]) == 1
+        and varargs[2][0][0] == 'not'
+    ):
+        varargs[2] = varargs[2][0]
+
+    # (and (...) (not (...))) -> (and (...) not (...))
+    if (
+        len(varargs) == 3
+        and varargs[0] == 'and'
+        and isinstance(varargs[2], list)
+        and varargs[2][0] == 'not'
+    ):
         assert isinstance(varargs[2], list)
         varargs.append(varargs[2][1])
         varargs[2] = varargs[2][0]
 
     for i, vararg in enumerate(varargs):
         if vararg in ['and', 'not']:
+            for t in varargs[i + 1]:
+                if not isinstance(t, str):
+                    print('Ignored conditional type', varargs)
+                    return None
+
             varargs[i + 1] = frozenset(varargs[i + 1])
 
     return tuple(varargs)
@@ -157,13 +184,6 @@ class CilRule(Rule):
             # while attribute rules expand to typeattribute
             parts[0] = RuleType.ATTRIBUTE.value
         elif parts[0] == CilRuleType.TYPEATTRIBUTESET:
-            # These weird statements are hand-written and part of
-            # technical_debt.cil
-            # We don't care enough to parse them, and some of them are
-            # not able to be expressed in module policy language
-            if is_handwritten_typeattributeset(parts[2]):
-                return []
-
             # TODO: remove version of types
             # theorethically the version exists, but if expandtypeattribute
             # is set to true then a single-value typeattributeset will
@@ -174,6 +194,9 @@ class CilRule(Rule):
 
             if is_conditional_typeattr(parts[2]):
                 varargs = structure_typeattr_varargs(parts[2])
+                if varargs is None:
+                    return []
+
                 conditional_types_map.setdefault(parts[1], varargs)
             else:
                 # Expand typeattributeset into multiple typeattribute rules
@@ -181,7 +204,7 @@ class CilRule(Rule):
                 for t in parts[2]:
                     assert isinstance(t, str)
 
-                    rule = Rule(RuleType.TYPEATTRIBUTE, [t, parts[1]], [])
+                    rule = Rule(RuleType.TYPEATTRIBUTE.value, [t, parts[1]], [])
                     rules.append(rule)
 
                 return rules
@@ -192,11 +215,11 @@ class CilRule(Rule):
         elif parts[0] == CilRuleType.EXPANDTYPEATTRIBUTE:
             parts[0] = RuleType.EXPANDATTRIBUTE.value
         elif parts[0] == CilRuleType.ALLOWX:
-            parts[0] = RuleType.ALLOWXPERM
+            parts[0] = RuleType.ALLOWXPERM.value
         elif parts[0] == CilRuleType.NEVERALLOWX:
-            parts[0] = RuleType.NEVERALLOWXPERM
+            parts[0] = RuleType.NEVERALLOWXPERM.value
         elif parts[0] == CilRuleType.DONTAUDITX:
-            parts[0] = RuleType.DONTAUDITXPERM
+            parts[0] = RuleType.DONTAUDITXPERM.value
 
         rule_type = RuleType[parts[0].upper()].value
         parts = parts[1:]

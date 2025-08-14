@@ -6,14 +6,18 @@ from __future__ import annotations
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Set, Union
 
 from cil_rule import CilRule
 from mld import MultiLevelDict
 from rule import Rule, is_type_generated, parts_list
 
 
-def replace_generated_part(m: Dict[str, str], part: Union[parts_list, str]):
+def replace_generated_part(
+    m: Dict[str, str],
+    missing_generated_types: Set[str],
+    part: Union[parts_list, str],
+):
     # base_typeattr_ is not found in the nested lists
     if not isinstance(part, str):
         return part
@@ -22,15 +26,22 @@ def replace_generated_part(m: Dict[str, str], part: Union[parts_list, str]):
         return part
 
     if part not in m:
-        print(f'Generated type {part} not found')
+        if part not in missing_generated_types:
+            print(f'Generated type {part} not found')
+            missing_generated_types.add(part)
+
         return part
 
     return m[part]
 
 
-def replace_generated_typeattributeset(m: Dict[str, str], rule: Rule):
+def replace_generated_typeattributeset(
+    m: Dict[str, str],
+    missing_generated_types: Set[str],
+    rule: Rule,
+):
     for i, part in enumerate(rule.parts):
-        rule.parts[i] = replace_generated_part(m, part)
+        rule.parts[i] = replace_generated_part(m, missing_generated_types, part)
 
 
 def decompile_cil(cil_paths: List[str]):
@@ -52,8 +63,13 @@ def decompile_cil(cil_paths: List[str]):
 
     # Replace conditional types with readable format
     # These types are not specified in order of appeatance
+    missing_generated_types: Set[str] = set()
     for rule in rules:
-        replace_generated_typeattributeset(conditional_types_map, rule)
+        replace_generated_typeattributeset(
+            conditional_types_map,
+            missing_generated_types,
+            rule,
+        )
 
     mld: MultiLevelDict[Rule] = MultiLevelDict()
     for rule in rules:

@@ -140,7 +140,7 @@ class SourceRule(Rule):
                 # Convert type rules to typeattribute to allow matching
                 # with split typeattributeset rules
                 for t in parts[1:]:
-                    rule = Rule(RuleType.TYPEATTRIBUTE, [parts[0], t], [])
+                    rule = Rule(RuleType.TYPEATTRIBUTE.value, [parts[0], t], [])
                     rules.append(rule)
             case RuleType.EXPANDATTRIBUTE:
                 rule = Rule(rule_type, parts, [])
