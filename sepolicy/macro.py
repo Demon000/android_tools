@@ -13,7 +13,7 @@ from typing import Dict, List, Tuple
 from classmap import Classmap
 from rule import Rule
 from source_rule import SourceRule
-from utils import split_normalize_text
+from utils import Color, color_print, split_normalize_text
 
 MACRO_START = 'define(`'
 
@@ -170,7 +170,7 @@ def categorize_macros(macros_name_body: List[Tuple[str, str]]):
 
     for name, body in macros_name_body:
         if not body:
-            print(f'Empty macro {name}')
+            color_print(f'Empty macro {name}', color=Color.YELLOW)
             continue
 
         macro_tuple = (name, body)
@@ -249,12 +249,13 @@ def decompile_macros(classmap: Classmap, expanded_macros: List[str, str]):
         try:
             rules = list(chain.from_iterable(map(from_line_fn, lines)))
         except ValueError:
-            print(f'Invalid macro {name}')
+            color_print(f'Invalid macro {name}', color=Color.YELLOW)
             continue
 
         expanded_macro_rules.append((name, rules))
 
     return expanded_macro_rules
+
 
 def macro_sort_key(macro: Tuple[str, List[Rule]]):
     max_arity = 0

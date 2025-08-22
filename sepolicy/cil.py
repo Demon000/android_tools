@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Dict, List, Set, Union
 
 from cil_rule import CilRule
-from mld import MultiLevelDict
 from rule import Rule, is_type_generated, parts_list
 
 
@@ -40,9 +39,10 @@ def replace_generated_typeattributeset(
     missing_generated_types: Set[str],
     rule: Rule,
 ):
-    for i, part in enumerate(rule.parts):
-        rule.parts[i] = replace_generated_part(m, missing_generated_types, part)
-
+    new_parts = list(rule.parts)
+    for i, part in enumerate(new_parts):
+        new_parts[i] = replace_generated_part(m, missing_generated_types, part)
+    rule.parts = tuple(new_parts)
 
 def decompile_cil(cil_paths: List[str]):
     cil_datas = [Path(p).read_text() for p in cil_paths]
@@ -71,8 +71,4 @@ def decompile_cil(cil_paths: List[str]):
             rule,
         )
 
-    mld: MultiLevelDict[Rule] = MultiLevelDict()
-    for rule in rules:
-        mld.add(rule.all_parts, rule)
-
-    return mld
+    return rules

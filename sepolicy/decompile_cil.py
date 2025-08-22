@@ -23,6 +23,7 @@ from macro import (
     split_macros_text_name_body,
 )
 from match import match_macro_rules
+from mld import MultiLevelDict
 from rule import Rule
 
 
@@ -79,6 +80,12 @@ if __name__ == '__main__':
         default=[],
         help='Variable used when expanding macros',
     )
+    parser.add_argument(
+        '-o',
+        '--output',
+        action='store',
+        help='Output directory for the decompiled selinux',
+    )
 
     args = parser.parse_args()
     assert args.macros
@@ -89,7 +96,15 @@ if __name__ == '__main__':
         k, v = kv.split('=')
         variables[k] = v
 
-    mld = decompile_cil(args.cil)
+    rules = decompile_cil(args.cil)
+
+    mld: MultiLevelDict[Rule] = MultiLevelDict()
+    for rule in rules:
+        mld.add(rule.all_parts, rule)
+
+    # import pprint
+    # pprint.pp(mld.data())
+    # exit()
 
     macro_file_paths = resolve_macro_paths(args.macros)
 
@@ -119,17 +134,14 @@ if __name__ == '__main__':
 
     sort_macros(macros_name_rules)
 
-    # print(len(mld))
-
     matched_macro_rules: List[Rule] = []
     for name, rules in macros_name_rules:
-        # if name != 'app_domain':
-        #     continue
-
         match_macro_rules(mld, name, rules, matched_macro_rules)
 
-    print(len(matched_macro_rules))
-    # print(len(mld))
+    print('Matched rules')
+    for rule in matched_macro_rules:
+        print(rule)
 
-    # for rule in mld:
-    #     print(rule)
+    print('Leftover rules')
+    for rule in mld.walk():
+        print(rule)

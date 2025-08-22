@@ -11,8 +11,10 @@ from rule import (
     RuleType,
     is_type_generated,
     parts_list,
+    remove_type_suffix,
     unpack_line,
 )
+from utils import Color, color_print
 
 
 def is_conditional_typeattr(varargs: parts_list):
@@ -60,10 +62,12 @@ def structure_typeattr_varargs(varargs: parts_list):
         if vararg in ['and', 'not']:
             for t in varargs[i + 1]:
                 if not isinstance(t, str):
-                    print('Ignored conditional type', varargs)
+                    color_print(
+                        'Ignored conditional type', varargs, color=Color.YELLOW
+                    )
                     return None
 
-            varargs[i + 1] = frozenset(varargs[i + 1])
+            varargs[i + 1] = frozenset(map(remove_type_suffix, varargs[i + 1]))
 
     return tuple(varargs)
 
@@ -201,10 +205,12 @@ class CilRule(Rule):
             else:
                 # Expand typeattributeset into multiple typeattribute rules
                 rules = []
+                v = remove_type_suffix(parts[1])
                 for t in parts[2]:
                     assert isinstance(t, str)
+                    t = remove_type_suffix(t)
 
-                    rule = Rule(RuleType.TYPEATTRIBUTE.value, [t, parts[1]], [])
+                    rule = Rule(RuleType.TYPEATTRIBUTE.value, [t, v], [])
                     rules.append(rule)
 
                 return rules
@@ -234,7 +240,9 @@ class CilRule(Rule):
                 assert len(parts) == 3, line
                 assert len(parts[2]) == 2, line
                 varargs = parts[2][1]
-                new_parts = parts[:2] + [parts[2][0]]
+                src = remove_type_suffix(parts[0])
+                dst = remove_type_suffix(parts[1])
+                new_parts = [src, dst, parts[2][0]]
             case (
                 RuleType.ALLOWXPERM
                 | RuleType.NEVERALLOWXPERM
@@ -243,11 +251,14 @@ class CilRule(Rule):
                 assert len(parts) == 3, line
                 assert len(parts[2]) == 3, line
                 varargs = list(unpack_ioctls(parts[2][2]))
-                new_parts = parts[:2] + parts[2][:2]
+                src = remove_type_suffix(parts[0])
+                dst = remove_type_suffix(parts[1])
+                new_parts = [src, dst] + parts[2][:2]
             case RuleType.ATTRIBUTE:
                 assert len(parts) == 1, line
                 varargs = []
-                new_parts = parts
+                t = remove_type_suffix(parts[0])
+                new_parts = [t]
             case RuleType.GENFSCON:
                 assert len(parts) == 3, line
                 assert len(parts[2]) == 4, line
@@ -259,7 +270,9 @@ class CilRule(Rule):
             case RuleType.TYPE_TRANSITION:
                 assert len(parts) in [4, 5], line
                 varargs = parts[3:-1]
-                new_parts = parts[:3] + [parts[-1]]
+                src = remove_type_suffix(parts[0])
+                dst = remove_type_suffix(parts[1])
+                new_parts = [src, dst, parts[2], parts[-1]]
             case RuleType.EXPANDATTRIBUTE:
                 assert len(parts[0]) == 1
                 varargs = []
