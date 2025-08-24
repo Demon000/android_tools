@@ -3,155 +3,254 @@
 
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Optional, Set
 
-from match_data import RuleMatchData
-from match_keys import macro_rule_get_match_keys, match_keys_fn_type
-from match_replace import macro_rule_replace_match_data
+from match_extract import (
+    args_type,
+    merge_arg_values,
+    rule_extract_part,
+    rule_extract_part_iter,
+)
+from match_replace import rule_replace_part_iter
 from mld import MultiLevelDict
-from rule import Rule, RuleType
+from rule import Rule, rule_part_or_varargs
 from utils import Color, color_print
 
 
-def macro_rule_match_one(
-    match_fns: List[match_keys_fn_type],
-    match_data: RuleMatchData,
-    matched_rules: List[Rule],
-    new_match_datas_rules_map: Dict[RuleMatchData, List[Rule]],
-    matched_rule: Rule,
-):
-    # TODO: match a single rule for each rule in the macro
-    # for each match data, but remove all occurances in the end
+class RuleMatch:
+    def __init__(
+        self,
+        macro_name: str,
+        rules: Set[Rule] = set(),
+        arg_values: args_type = {},
+    ):
+        self.macro_name = macro_name
+        self.rules = rules
+        self.arg_values = arg_values
+        self.hash_values = tuple(
+            [
+                self.macro_name,
+                frozenset(self.arg_values.items()),
+            ]
+        )
+        self.hash = hash(self.hash_values)
 
-    print('matched_rule', matched_rule)
-    print('match_data', match_data.data())
+        args = tuple(arg_values[k] for k in sorted(arg_values.keys()))
+        self.macro = Rule(macro_name, args, tuple(), is_macro=True)
 
-    match_datas = [match_data]
-    for i, match_fn in enumerate(match_fns):
-        if match_fn is None:
+    def filled_args(self):
+        return self.arg_values.keys()
+
+    def add_arg_values(self, arg_values: args_type) -> Optional[RuleMatch]:
+        new_arg_values = merge_arg_values(self.arg_values, arg_values)
+        if new_arg_values is None:
+            return None
+
+        return RuleMatch(self.macro_name, self.rules.copy(), new_arg_values)
+
+    def add_rule(self, rule: Rule):
+        self.rules.add(rule)
+
+    def __hash__(self):
+        return self.hash
+
+    def __eq__(self, other: object):
+        assert isinstance(other, RuleMatch)
+
+        return self.hash_values == other.hash_values
+
+    def __str__(self):
+        return str(self.macro)
+
+
+def rule_match_keys(rule: Rule, is_match_keys_full: bool):
+    match_keys: List[Optional[rule_part_or_varargs]] = [rule.rule_type]
+
+    for part in rule.parts:
+        # A fully filled rule doesn't need to have its parts tested
+        # to check if they need to be filled
+        if is_match_keys_full:
+            match_keys.append(part)
             continue
 
-        print('i', i, match_fn)
+        # Match part to itself to see if it has any args
+        part_args_values = rule_extract_part(part, part)
 
-        # TODO: need matching for rule types?
-        assert i != 0
-        key = matched_rule.parts[i - 1]
-        print('key', key)
+        if part_args_values:
+            match_keys.append(None)
+        else:
+            match_keys.append(part)
 
-        new_match_datas = []
-        for match_data in match_datas:
-            current_match_datas = match_fn(key, match_data)
-            new_match_datas.extend(current_match_datas)
+    match_keys.append(rule.varargs)
 
-        for match_data in new_match_datas:
-            print('new_match_data', match_data.data())
-        print()
-
-        match_datas = new_match_datas
-
-    for match_data in match_datas:
-        new_match_datas_rules_map.setdefault(
-            match_data, matched_rules[:]
-        ).append(matched_rule)
+    return match_keys
 
 
-def macro_rule_match(
+def rule_fill(rule: Rule, arg_values: args_type):
+    new_parts = rule_replace_part_iter(rule.parts, arg_values)
+    if new_parts is None:
+        return None
+
+    return Rule(rule.rule_type, tuple(new_parts), rule.varargs)
+
+
+def match_macro_rule(
     mld: MultiLevelDict[Rule],
-    rule: Rule,
-    match_data: RuleMatchData,
-    matched_rules: List[Rule],
-    new_match_datas_rules_map: Dict[RuleMatchData, List[Rule]],
+    macro_rule: Rule,
+    macro_rule_index: int,
+    rule_matches: Set[RuleMatch],
 ):
-    print('macro_rule_match', rule)
-    match_keys, match_fns = macro_rule_get_match_keys(rule)
-    print('match_keys', match_keys)
+    print(f'Processing rule: {macro_rule}')
 
-    for matched_rule in mld.match(match_keys):
-        if matched_rule.varargs != rule.varargs:
-            return
+    macro_rule_args = rule_extract_part_iter(
+        macro_rule.parts,
+        macro_rule.parts,
+    )
+    assert macro_rule_args is not None
 
-        print('rule', rule)
+    # Check if this rule requires only already completed args
+    rule_match = next(iter(rule_matches))
+    is_match_keys_full = macro_rule_args.keys() <= rule_match.filled_args()
 
-        macro_rule_match_one(
-            rule,
-            match_fns,
-            match_data,
-            matched_rules,
-            new_match_datas_rules_map,
-            matched_rule,
-        )
+    new_rule_matches: Set[RuleMatch] = set()
+    for rule_match in rule_matches:
+        # print(f'Initial args: {rule_match.arg_values}')
+
+        # TODO: make rule args extraction build a path that can be used for
+        # filling no matter the args
+        filled_rule = rule_fill(macro_rule, rule_match.arg_values)
+        if filled_rule is None:
+            continue
+
+        # print(f'Filled rule: {filled_rule}')
+
+        match_keys = rule_match_keys(filled_rule, is_match_keys_full)
+        # print(f'Match keys: {match_keys}')
+
+        for matched_rule in mld.match(match_keys):
+            # print(f'Matched rule: {matched_rule}')
+
+            # If the rule is fully filled don't expand the matches
+            if is_match_keys_full:
+                rule_match.add_rule(matched_rule)
+                new_rule_matches.add(rule_match)
+                # print()
+                break
+
+            new_args_values = rule_extract_part_iter(
+                filled_rule.parts,
+                matched_rule.parts,
+            )
+            if new_args_values is None:
+                continue
+
+            new_rule_match = rule_match.add_arg_values(new_args_values)
+            if new_rule_match is None:
+                continue
+
+            new_rule_match.add_rule(matched_rule)
+            new_rule_matches.add(new_rule_match)
+
+    return new_rule_matches
 
 
 def match_macro_rules(
     mld: MultiLevelDict[Rule],
     macro_name: str,
     macro_rules: List[Rule],
-    matched_macro_rules: List[Rule],
+    all_rule_matches: Set[RuleMatch],
 ):
-    # TODO: figure out unix_socket_connect and unix_socket_send
-    # not being formed into set_prop
     print(f'Processing macro: {macro_name}')
 
-    match_datas_rules: Dict[RuleMatchData, List[Rule]] = {
-        RuleMatchData(): [],
-    }
-
-    for macro_rule in macro_rules:
-        print(f'Processing rule: {macro_rule}')
-
-        new_match_datas_rules_map: Dict[RuleMatchData, List[Rule]] = {}
-        for match_data, matched_rules in match_datas_rules.items():
-            filled_rule = macro_rule_replace_match_data(match_data, macro_rule)
-
-            macro_rule_match(
-                mld,
-                filled_rule,
-                match_data,
-                matched_rules,
-                new_match_datas_rules_map,
-            )
-
-        if not new_match_datas_rules_map:
-            color_print('No matches for rule', macro_rule, color=Color.YELLOW)
+    rule_matches: Set[RuleMatch] = set([RuleMatch(macro_name)])
+    for macro_rule_index, macro_rule in enumerate(macro_rules):
+        new_rule_matches = match_macro_rule(
+            mld,
+            macro_rule,
+            macro_rule_index,
+            rule_matches,
+        )
+        print(f'Found {len(new_rule_matches)} candidates')
+        if not len(new_rule_matches):
             print()
             return
 
-        match_datas_rules = new_match_datas_rules_map
+        rule_matches = new_rule_matches
 
-        # for match_data, match_data_rules in match_datas_rules.items():
-        #     print('Matched', match_data.data())
-        #     for rule in match_data_rules:
-        #         print(rule)
-        #     print
+    all_rule_matches.update(rule_matches)
 
-    for match_data, match_data_rules in match_datas_rules.items():
-        print('match_data', match_data.data())
-        for match_data_rule in match_data_rules:
-            print(match_data_rule)
-        print()
+    print(f'Found {len(rule_matches)} macro calls')
+    print()
 
-        for match_data_rule in match_data_rules:
-            try:
-                mld.remove(match_data_rule.all_parts, match_data_rule)
-            except ValueError as e:
-                # typeattribute rules are split from typeattributeset rules,
-                # which means we cannot figure out how many times they are
-                # defined
-                # This particularly happens for the pdx_service_socket_types
-                # macro
-                # Do not error out if the rule that couldn't be removed is
-                # a typeattribute
-                if match_data_rule.rule_type != RuleType.TYPEATTRIBUTE:
-                    raise e
 
-        # Extract match_data values sorted based on their arg index
-        raw_match_data = match_data.data()
-        args = [raw_match_data[k] for k in sorted(raw_match_data.keys())]
-        macro_rule = Rule(macro_name, args, [], is_macro=True)
-        matched_macro_rules.append(macro_rule)
-
+def discard_superset_rule_matches(
+    mld: MultiLevelDict[Rule],
+    all_rule_matches: Set[RuleMatch],
+    macro_rules: List[Rule],
+):
     color_print(
-        f'Matched {len(match_datas_rules)} {macro_name} calls',
+        f'All rule matches: {len(all_rule_matches)}',
         color=Color.GREEN,
     )
-    print()
+
+    rule_matches_map: Dict[Rule, Set[RuleMatch]] = {}
+    for rule_match in all_rule_matches:
+        for rule in rule_match.rules:
+            if rule not in rule_matches_map:
+                rule_matches_map[rule] = set()
+            rule_matches_map[rule].add(rule_match)
+
+    discarded_rule_matches: Set[RuleMatch] = set()
+
+    for rule_match in all_rule_matches:
+        candidate_supersets: Optional[Set[RuleMatch]] = None
+
+        for rule in rule_match.rules:
+            rule_matches = rule_matches_map[rule]
+
+            if candidate_supersets is None:
+                candidate_supersets = rule_matches
+            else:
+                candidate_supersets = candidate_supersets & rule_matches
+
+        assert candidate_supersets is not None
+
+        candidate_supersets.remove(rule_match)
+
+        for candidate in candidate_supersets:
+            if rule_match.rules < candidate.rules or (
+                rule_match.rules == candidate.rules
+                and len(rule_match.arg_values) > len(candidate.arg_values)
+            ):
+                # print(f'Macro {rule_match} subset of {candidate}')
+                discarded_rule_matches.add(rule_match)
+                break
+
+    color_print(
+        f'Discarded subset rule matches: {len(discarded_rule_matches)}',
+        color=Color.GREEN,
+    )
+
+    for rule_match in discarded_rule_matches:
+        all_rule_matches.remove(rule_match)
+
+    color_print(
+        f'Rule matches: {len(all_rule_matches)}',
+        color=Color.GREEN,
+    )
+
+    double_removed_rules: Set[Rule] = set()
+    for rule_match in all_rule_matches:
+        macro_rules.append(rule_match.macro)
+        for rule in rule_match.rules:
+            try:
+                mld.remove(rule.hash_values, rule)
+            except KeyError:
+                if rule in double_removed_rules:
+                    continue
+
+                color_print(
+                    f'Rule already removed: {rule}',
+                    color=Color.YELLOW,
+                )
+                double_removed_rules.add(rule)

@@ -10,51 +10,87 @@ from typing import (
     Generator,
     Generic,
     List,
+    Sequence,
+    Set,
     Tuple,
     TypeVar,
+    Union,
 )
 
 T = TypeVar('T')
 
-def with_nones(t: Tuple[Hashable]):
-    choices = ((x, None) for x in t)
+
+def tuples_with_nones(
+    t: Sequence[Hashable],
+    nones_start: int,
+) -> Generator[Tuple[Union[Hashable, None], ...], None, None]:
+    choices: List[Tuple[Union[Hashable, None], ...]] = []
+    for i, x in enumerate(t):
+        if i < nones_start:
+            choices.append((x,))
+        else:
+            choices.append((x, None))
     yield from itertools.product(*choices)
+
 
 class MultiLevelDict(Generic[T]):
     def __init__(self):
-        self.__data: Dict[int, Dict[Tuple[Hashable, ...], List[T]]] = {}
+        self.__data: Dict[int, Dict[Tuple[Hashable, ...], Set[T]]] = {}
+        self.__all_data: Set[T] = set()
 
     def data(self):
         return self.__data
 
-    def walk(self):
-        for levels in self.__data.keys():
-            t = tuple([None] * levels)
-            yield from self.__data[levels][t]
+    def walk(self) -> Generator[T, None, None]:
+        yield from self.__all_data
 
-    def add(self, keys: Tuple[Hashable], value: T):
+    def add(
+        self,
+        keys: Sequence[Hashable],
+        value: T,
+        nones_start: int = 0,
+    ):
+        self.__all_data.add(value)
+
         levels = len(keys)
-        levels_data = self.__data.setdefault(levels, {})
-        for t in with_nones(keys):
-            levels_data.setdefault(t, []).append(value)
+        if levels not in self.__data:
+            self.__data[levels] = {}
 
-    def remove(self, keys: List[Hashable], value: T):
+        levels_data = self.__data[levels]
+
+        for t in tuples_with_nones(keys, nones_start):
+            if t not in levels_data:
+                levels_data[t] = set()
+
+            levels_data[t].add(value)
+
+    def remove(
+        self,
+        keys: Sequence[Hashable],
+        value: T,
+        nones_start: int = 0,
+    ):
+        self.__all_data.remove(value)
+
         levels = len(keys)
         assert levels in self.__data
-        print('remove', value)
-        for t in with_nones(keys):
-            self.__data[levels][t].remove(value)
+        levels_data = self.__data[levels]
+
+        for t in tuples_with_nones(keys, nones_start):
+            levels_data[t].remove(value)
 
     def match(
         self,
-        keys: Tuple[Hashable],
+        keys: Sequence[Hashable],
     ) -> Generator[T]:
-        levels = len(keys)
+        keys_tuple = tuple(keys)
+
+        levels = len(keys_tuple)
         if levels not in self.__data:
             return
 
         levels_data = self.__data[levels]
-        if keys not in levels_data:
+        if keys_tuple not in levels_data:
             return
 
-        yield from levels_data[keys]
+        yield from levels_data[keys_tuple]

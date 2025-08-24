@@ -2,7 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
+from collections.abc import Hashable
 from enum import Enum
+from typing import Any, Protocol, runtime_checkable
+
+
+@runtime_checkable
+class SizedIndexable(Hashable, Protocol):
+    def __len__(self) -> int: ...
+    def __getitem__(self, index: int) -> Any: ...
 
 
 def remove_comments(line: str):
@@ -19,7 +27,7 @@ def is_empty_line(line: str):
 
 def split_normalize_text(text: str):
     lines = text.splitlines(keepends=True)
-    lines = map(remove_comments, lines)
+    lines = list(map(remove_comments, lines))
     lines = list(filter(lambda line: not is_empty_line(line), lines))
     return lines
 
@@ -30,7 +38,7 @@ class Color(str, Enum):
     END = '\033[0m'
 
 
-def color_print(*args, color: Color, **kwargs):
+def color_print(*args: object, color: Color):
     args_str = ' '.join(str(arg) for arg in args)
     args_str = color.value + args_str + Color.END.value
-    print(args_str, **kwargs)
+    print(args_str)

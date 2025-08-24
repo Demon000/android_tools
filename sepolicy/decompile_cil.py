@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import List
+from typing import List, Set, Tuple
 
 from cil import decompile_cil
 from classmap import SELINUX_INCLUDE_PATH, Classmap
@@ -19,10 +19,10 @@ from macro import (
     macro_name,
     read_macros,
     resolve_macro_paths,
-    sort_macros,
     split_macros_text_name_body,
 )
-from match import match_macro_rules
+from match import RuleMatch, discard_superset_rule_matches, match_macro_rules
+from match_extract import rule_extract_part_iter
 from mld import MultiLevelDict
 from rule import Rule
 
@@ -51,6 +51,39 @@ def print_variable_ifelse(macros: List[str]):
                 print(
                     f'Macro {name} contains variable ifelse: {conditional_variable}'
                 )
+
+
+def rule_arity(rule: Rule):
+    macro_rule_args = rule_extract_part_iter(
+        rule.parts,
+        rule.parts,
+    )
+    assert macro_rule_args is not None
+    return len(macro_rule_args)
+
+
+def macro_sort_key(macro: Tuple[str, List[Rule]]):
+    rules = macro[1]
+    arities = list(map(rule_arity, rules))
+    max_arity = max(arities, default=0)
+
+    return (-len(macro[1]), max_arity)
+
+
+def sort_macros(macros: List[Tuple[str, List[Rule]]]):
+    # Inside the macro, prefer rules with higher arity to help
+    # the arg matching algorithm
+    # TODO: sort so that rules using higher args are preferred
+    for macro in macros:
+        rules = macro[1]
+        rules.sort(key=rule_arity, reverse=True)
+
+    # Sort by number of rules and arity, prefer macros with more rules and
+    # lower arity
+    # This is important for define_prop() wrappers that have the same number
+    # of rules as define_prop() but lower arity
+    # TODO: not needed for matching all macros and then rulling them out
+    # macros.sort(key=macro_sort_key)
 
 
 if __name__ == '__main__':
@@ -100,11 +133,9 @@ if __name__ == '__main__':
 
     mld: MultiLevelDict[Rule] = MultiLevelDict()
     for rule in rules:
-        mld.add(rule.all_parts, rule)
-
-    # import pprint
-    # pprint.pp(mld.data())
-    # exit()
+        # Add partial matches to this rule
+        # Start partial matching after the first key
+        mld.add(rule.hash_values, rule)
 
     macro_file_paths = resolve_macro_paths(args.macros)
 
@@ -127,21 +158,40 @@ if __name__ == '__main__':
 
     # classmap is needed to sort classes and perms to match the compiled
     # output
-    selinux_include_path = Path(args.kernel, SELINUX_INCLUDE_PATH)
-    classmap = Classmap(selinux_include_path)
+    selinux_include_path = Path(args.kernel, SELINUX_INCLUDE_PATH).resolve()
+    classmap = Classmap(str(selinux_include_path))
 
     macros_name_rules = decompile_macros(classmap, expanded_macros)
 
     sort_macros(macros_name_rules)
 
-    matched_macro_rules: List[Rule] = []
+    all_rule_matches: Set[RuleMatch] = set()
     for name, rules in macros_name_rules:
-        match_macro_rules(mld, name, rules, matched_macro_rules)
+        match_macro_rules(
+            mld,
+            name,
+            rules,
+            all_rule_matches,
+        )
 
-    print('Matched rules')
-    for rule in matched_macro_rules:
+    macro_rules: List[Rule] = []
+    discard_superset_rule_matches(mld, all_rule_matches, macro_rules)
+
+    print('Macro rules')
+    for rule in macro_rules:
         print(rule)
 
     print('Leftover rules')
     for rule in mld.walk():
         print(rule)
+
+    # TODO: merge back typeattribute rules
+
+    # TODO: use class_sets macros
+    # TODO: use perms macros
+    # TODO: use ioctls macros
+    # TODO: use ioctl defines macros
+
+    # TODO: output property_contexts, file_contexts, hwservice_contexts, genfs_contexts
+    # TODO: output rules and macros to file
+    # TODO: output app signing certificates

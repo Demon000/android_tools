@@ -4,13 +4,19 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Hashable
-from enum import StrEnum
-from typing import List, Set, Union
+from enum import Enum
+from typing import List, Optional, Tuple, Union
+
+from conditional_type import IConditionalType
 
 macro_argument_regex = re.compile(r'\$(\d+)')
 
-parts_list = List[Union['parts_list', str]]
+raw_part = Union[str, List['raw_part']]
+raw_parts_list = List[raw_part]
+rule_part = Union[str, IConditionalType]
+rule_part_or_varargs = Union[rule_part, Tuple[str, ...]]
+
+
 
 VERSION_SUFFIXES = set(
     [
@@ -24,6 +30,7 @@ VERSION_SUFFIXES = set(
     ]
 )
 
+
 # TODO: optimize
 def remove_type_suffix(t: str):
     for suffix in VERSION_SUFFIXES:
@@ -33,20 +40,11 @@ def remove_type_suffix(t: str):
     return t
 
 
-def is_type_generated(t: str):
-    return t.startswith('base_typeattr_')
+def is_type_generated(part: rule_part):
+    if not isinstance(part, str):
+        return False
 
-
-def flatten_parts(parts: parts_list):
-    if isinstance(parts, str):
-        yield parts
-        return
-
-    for part in parts:
-        if isinstance(part, list):
-            yield from flatten_parts(part)
-        else:
-            yield part
+    return part.startswith('base_typeattr_')
 
 
 def unpack_line(
@@ -54,13 +52,13 @@ def unpack_line(
     open_char: str,
     close_char: str,
     separators: str,
-    open_by_default=False,
-    ignored_chars='',
-) -> parts_list:
+    open_by_default: bool = False,
+    ignored_chars: str = '',
+) -> raw_parts_list:
     # TODO: test ~{ a b } formatting for source rules
 
-    stack = []
-    current = []
+    stack: List[raw_parts_list] = []
+    current: raw_parts_list = []
     token = ''
 
     def add_token():
@@ -91,6 +89,8 @@ def unpack_line(
         else:
             token += c
 
+    assert isinstance(current[0], list)
+
     return current[0] if current else []
 
 
@@ -98,7 +98,7 @@ def remove_ioctl_zeros(ioctls: List[str]):
     return list(map(lambda i: hex(int(i, base=16)), ioctls))
 
 
-class RuleType(StrEnum):
+class RuleType(str, Enum):
     ALLOW = 'allow'
     ALLOWXPERM = 'allowxperm'
     ATTRIBUTE = 'attribute'
@@ -114,42 +114,11 @@ class RuleType(StrEnum):
     TYPEATTRIBUTE = 'typeattribute'
 
 
-def join_varargs(varargs: List[str]):
+def join_varargs(varargs: Tuple[str, ...]):
     s = ' '.join(varargs)
 
     if len(varargs) > 1:
         s = '{ ' + s + ' }'
-
-    return s
-
-
-def format_conditional_type(part: str | List[Union[str, frozenset[str]]]):
-    if isinstance(part, str):
-        return part
-
-    if part == tuple(['all']):
-        return '*'
-
-    s = ''
-    if part[0] == 'and' and len(part) in [2, 4]:
-        s += '{'
-        for a in part[1]:
-            s += f' {a}'
-        if len(part) == 4 and part[2] == 'not':
-            for n in part[3]:
-                s += f' -{n}'
-        s += ' }'
-    elif part[0] == 'not':
-        s += '~'
-
-        if len(part[1]):
-            s += '{'
-        for n in part[1]:
-            s += f' {n}'
-        if len(part[1]):
-            s += ' }'
-    else:
-        assert False, part
 
     return s
 
@@ -162,12 +131,10 @@ def format_rule(rule: Rule):
             | RuleType.AUDITALLOW
             | RuleType.DONTAUDIT
         ):
-            src = format_conditional_type(rule.parts[0])
-            dst = format_conditional_type(rule.parts[1])
             return '{} {} {}:{} {};'.format(
                 rule.rule_type,
-                src,
-                dst,
+                rule.parts[0],
+                rule.parts[1],
                 rule.parts[2],
                 join_varargs(rule.varargs),
             )
@@ -176,14 +143,11 @@ def format_rule(rule: Rule):
             | RuleType.NEVERALLOWXPERM
             | RuleType.DONTAUDITXPERM
         ):
-            src = format_conditional_type(rule.parts[0])
-            dst = format_conditional_type(rule.parts[1])
-            return '{} {} {}:{} {} {};'.format(
+            return '{} {} {}:{} ioctl {};'.format(
                 rule.rule_type,
-                src,
-                dst,
+                rule.parts[0],
+                rule.parts[1],
                 rule.parts[2],
-                rule.parts[3],
                 join_varargs(rule.varargs),
             )
         case RuleType.TYPE:
@@ -193,39 +157,39 @@ def format_rule(rule: Rule):
                 rule.rule_type, rule.parts[0], varargs_str
             )
         case RuleType.TYPE_TRANSITION:
+            # TODO: can the varargs depend on args?
+
             assert len(rule.varargs) in [0, 1]
 
             if len(rule.varargs) == 1:
-
                 name = f'{list(rule.varargs)[0]} '
             else:
                 name = ''
 
-            src = format_conditional_type(rule.parts[0])
-            dst = format_conditional_type(rule.parts[1])
             return '{} {} {}:{} {}{};'.format(
                 rule.rule_type,
-                src,
-                dst,
+                rule.parts[0],
+                rule.parts[1],
                 rule.parts[2],
                 name,
                 rule.parts[-1],
             )
         case RuleType.GENFSCON:
-            return '{} {} {} {}:{}:{}:{};'.format(
-                rule.rule_type,
-                *rule.parts,
+            return 'genfscon {} {} u:object_r:{}:s0;'.format(
+                rule.parts[0],
+                rule.parts[1],
+                rule.parts[2],
             )
         case (
             RuleType.ATTRIBUTE
             | RuleType.TYPEATTRIBUTE
             | RuleType.EXPANDATTRIBUTE
         ):
-            all_parts_str = ' '.join(rule.all_parts)
-            return f'{all_parts_str};'
+            parts_str = ' '.join(map(str, rule.parts))
+            return f'{rule.rule_type} {parts_str};'
         case _:
             assert rule.is_macro
-            parts_str = ', '.join(rule.parts)
+            parts_str = ', '.join(map(str, rule.parts))
             return f'{rule.rule_type}({parts_str})'
 
 
@@ -233,35 +197,32 @@ class Rule:
     def __init__(
         self,
         rule_type: str,
-        parts: List[Hashable],
-        varargs: List[str],
-        is_macro=False,
+        parts: Tuple[rule_part, ...],
+        varargs: Tuple[str, ...],
+        is_macro: bool = False,
     ):
         self.rule_type = rule_type
-        self.parts = tuple(parts)
-        self.varargs = frozenset(varargs)
+        self.parts = parts
+        self.varargs = tuple(varargs)
         self.is_macro = is_macro
+        self.hash_values: Tuple[rule_part_or_varargs, ...] = tuple(
+            [self.rule_type] + list(self.parts) + [self.varargs]
+        )
 
-    @property
-    def all_parts(self):
-        return tuple([self.rule_type] + list(self.parts))
+        # Postpone hash calculation so that ConditionalTypes are fully
+        # gathered and ConditionalTypeRedirect can find them
+        self.__hash: Optional[int] = None
 
     def __str__(self):
         return format_rule(self)
 
+    def __eq__(self, other: object):
+        assert isinstance(other, Rule)
+
+        return self.hash_values == other.hash_values
+
     def __hash__(self):
-        return hash(tuple(self.all_parts, self.varargs))
+        if self.__hash is None:
+            self.__hash = hash(self.hash_values)
 
-    def arity(self):
-        arg_indices: Set[int] = set()
-
-        for part in self.parts:
-            if '$' not in part:
-                continue
-
-            part_arg_indices = [
-                int(i) for i in macro_argument_regex.findall(part)
-            ]
-            arg_indices.update(part_arg_indices)
-
-        return len(arg_indices)
+        return self.__hash

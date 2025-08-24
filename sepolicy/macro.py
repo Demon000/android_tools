@@ -144,8 +144,8 @@ define(`quote_end', {quote_char("'")})
     # only once
     input_text += '\n'.join(macro_calls)
 
-    variables_args = [('-D', f'{k}={v}') for k, v in variables.items()]
-    variables_args = [x for p in variables_args for x in p]
+    variables_args_k_v = [('-D', f'{k}={v}') for k, v in variables.items()]
+    variables_args = [x for p in variables_args_k_v for x in p]
     output_text = subprocess.check_output(
         ['m4', *variables_args],
         input=input_text,
@@ -201,11 +201,11 @@ SEPOLICY_FILES = [
 
 
 def resolve_macro_paths(macro_paths: List[str]):
-    macro_file_paths = []
+    macro_file_paths: List[str] = []
     for macro_path in macro_paths:
         mp = Path(macro_path)
         if mp.is_file():
-            macro_file_paths.append(mp.resolve())
+            macro_file_paths.append(str(mp.resolve()))
             continue
 
         if not mp.is_dir():
@@ -214,12 +214,12 @@ def resolve_macro_paths(macro_paths: List[str]):
         for file_path in SEPOLICY_FILES:
             fp = Path(macro_path, file_path)
             if fp.is_file():
-                macro_file_paths.append(fp.resolve())
+                macro_file_paths.append(str(fp.resolve()))
 
     return macro_file_paths
 
 
-def read_macros(macro_file_paths: List[str]):
+def read_macros(macro_file_paths: List[str]) -> Tuple[str, List[str]]:
     # Join all the macro files
     input_text = ''
     for macro_path in macro_file_paths:
@@ -239,7 +239,10 @@ def read_macros(macro_file_paths: List[str]):
     return input_text, macros_text
 
 
-def decompile_macros(classmap: Classmap, expanded_macros: List[str, str]):
+def decompile_macros(
+    classmap: Classmap,
+    expanded_macros: List[Tuple[str, str]],
+):
     from_line_fn = partial(SourceRule.from_line, classmap=classmap)
 
     expanded_macro_rules: List[Tuple[str, List[Rule]]] = []
@@ -255,19 +258,3 @@ def decompile_macros(classmap: Classmap, expanded_macros: List[str, str]):
         expanded_macro_rules.append((name, rules))
 
     return expanded_macro_rules
-
-
-def macro_sort_key(macro: Tuple[str, List[Rule]]):
-    max_arity = 0
-    for rule in macro[1]:
-        rule_arity = rule.arity()
-        max_arity = max(max_arity, rule_arity)
-    return (-len(macro[1]), max_arity)
-
-
-def sort_macros(macros: List[Tuple[str, List[Rule]]]):
-    # Sort by number of rules and arity, prefer macros with more rules and
-    # lower arity
-    # This is important for define_prop() wrappers that have the same number
-    # of rules as define_prop() but lower arity
-    macros.sort(key=macro_sort_key)

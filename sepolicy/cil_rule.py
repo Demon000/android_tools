@@ -3,73 +3,95 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
+from enum import Enum
 from typing import Dict, List, Set
 
+from conditional_type import ConditionalType, ConditionalTypeRedirect
 from rule import (
     Rule,
     RuleType,
     is_type_generated,
-    parts_list,
+    raw_part,
+    raw_parts_list,
     remove_type_suffix,
     unpack_line,
 )
 from utils import Color, color_print
 
 
-def is_conditional_typeattr(varargs: parts_list):
-    if isinstance(varargs[0], list):
-        vararg = varargs[0][0]
+def is_conditional_typeattr(part: raw_part):
+    if isinstance(part[0], list):
+        part = part[0][0]
     else:
-        vararg = varargs[0]
+        part = part[0]
 
-    return vararg in ['and', 'not', 'all']
-
-
-def is_handwritten_typeattributeset(varargs: parts_list):
-    return isinstance(varargs[0], list)
+    return part in ['and', 'not', 'all']
 
 
-def structure_typeattr_varargs(varargs: parts_list):
+def create_conditional_type(parts: raw_parts_list):
     # ((and (...) ((not (...))))) -> (and (...) ((not (...))))
     # ((not (...))) -> (not (...))
 
-    if len(varargs) == 1 and isinstance(varargs[0], list):
-        varargs = varargs[0]
-        assert varargs[0] in ['and', 'not', 'all'], varargs
+    if len(parts) == 1 and isinstance(parts[0], list):
+        parts = parts[0]
+        assert parts[0] in ['and', 'not', 'all'], parts
 
     # (and (...) ((not (...)))) -> (and (...) (not (...)))
     if (
-        len(varargs) == 3
-        and isinstance(varargs[2], list)
-        and len(varargs[2]) == 1
-        and varargs[2][0][0] == 'not'
+        len(parts) == 3
+        and isinstance(parts[2], list)
+        and len(parts[2]) == 1
+        and parts[2][0][0] == 'not'
     ):
-        varargs[2] = varargs[2][0]
+        parts[2] = parts[2][0]
 
     # (and (...) (not (...))) -> (and (...) not (...))
     if (
-        len(varargs) == 3
-        and varargs[0] == 'and'
-        and isinstance(varargs[2], list)
-        and varargs[2][0] == 'not'
+        len(parts) == 3
+        and parts[0] == 'and'
+        and isinstance(parts[2], list)
+        and parts[2][0] == 'not'
     ):
-        assert isinstance(varargs[2], list)
-        varargs.append(varargs[2][1])
-        varargs[2] = varargs[2][0]
+        assert isinstance(parts[2], list)
+        parts.append(parts[2][1])
+        parts[2] = parts[2][0]
 
-    for i, vararg in enumerate(varargs):
-        if vararg in ['and', 'not']:
-            for t in varargs[i + 1]:
-                if not isinstance(t, str):
-                    color_print(
-                        'Ignored conditional type', varargs, color=Color.YELLOW
-                    )
-                    return None
+    # (all)
+    if parts == ['all']:
+        return ConditionalType([], [], True)
 
-            varargs[i + 1] = frozenset(map(remove_type_suffix, varargs[i + 1]))
+    # Split in groups of two
+    if len(parts) not in [2, 4]:
+        color_print('Ignored conditional type: ', parts, color=Color.YELLOW)
+        return None
 
-    return tuple(varargs)
+    positive: List[str] = []
+    negative: List[str] = []
+
+    for i in range(0, len(parts), 2):
+        group = parts[i : i + 2]
+        assert len(group) == 2, parts
+        assert isinstance(group[0], str)
+        assert group[0] in ['and', 'not'], parts
+        assert isinstance(group[1], list), parts
+
+        # Type narrowing
+        new_group: List[str] = []
+        for t in group[1]:
+            if isinstance(t, str):
+                new_group.append(t)
+                continue
+
+            color_print('Ignored conditional type: ', parts, color=Color.YELLOW)
+            return None
+
+        new_types = map(remove_type_suffix, new_group)
+        if group[0] == 'and':
+            positive.extend(new_types)
+        elif group[0] == 'not':
+            negative.extend(new_types)
+
+    return ConditionalType(positive, negative, False)
 
 
 def is_valid_cil_line(line: str):
@@ -87,7 +109,7 @@ def is_valid_cil_line(line: str):
     return True
 
 
-def is_allow_process_sigchld(parts: parts_list):
+def is_allow_process_sigchld(parts: raw_parts_list):
     return (
         parts[0] == RuleType.ALLOW
         and len(parts) == 4
@@ -95,26 +117,37 @@ def is_allow_process_sigchld(parts: parts_list):
     )
 
 
-def unpack_ioctls(parts: parts_list):
+def unpack_ioctls(parts: raw_parts_list):
+    # (. (range . .) ((range . .)))
+
     for part in parts:
         if isinstance(part, str):
             yield part
-        elif isinstance(part, list):
-            if isinstance(part[0], list):
-                part = part[0]
+            continue
 
-            assert part[0] == 'range'
-            start_ioctl = int(part[1], base=16)
-            end_ioctl = int(part[2], base=16)
-            for n in range(start_ioctl, end_ioctl + 1):
-                yield hex(n)
+        assert isinstance(part, list)
+
+        if isinstance(part[0], list):
+            part = part[0]
+
+        assert part[0] == 'range'
+
+        assert isinstance(part[1], str)
+        start_ioctl = int(part[1], base=16)
+
+        assert isinstance(part[2], str)
+        end_ioctl = int(part[2], base=16)
+
+        for n in range(start_ioctl, end_ioctl + 1):
+            yield hex(n)
 
 
-class CilRuleType(StrEnum):
+class CilRuleType(str, Enum):
     ALLOWX = 'allowx'
     NEVERALLOWX = 'neverallowx'
     DONTAUDITX = 'dontauditx'
     EXPANDTYPEATTRIBUTE = 'expandtypeattribute'
+    TYPEATTRIBUTE = 'typeattribute'
     TYPEATTRIBUTESET = 'typeattributeset'
     TYPETRANSITION = 'typetransition'
 
@@ -157,9 +190,17 @@ class CilRule(Rule):
     def from_line(
         cls,
         line: str,
-        conditional_types_map: Dict[str, str],
+        conditional_types_map: Dict[str, ConditionalType],
+        missing_generated_types: Set[str],
         genfs_rules: List[Rule],
     ) -> List[Rule]:
+        def type_redirect(t: str):
+            return ConditionalTypeRedirect(
+                t,
+                conditional_types_map,
+                missing_generated_types,
+            )
+
         # Skip comments and empty lines
         if not is_valid_cil_line(line):
             return []
@@ -167,6 +208,8 @@ class CilRule(Rule):
         parts = unpack_line(line, '(', ')', ' ')
         if not parts:
             return []
+
+        assert isinstance(parts[0], str), line
 
         # Remove rules that don't have a meaningful source mapping
         if parts[0] in unknown_rule_types:
@@ -178,112 +221,197 @@ class CilRule(Rule):
         if is_allow_process_sigchld(parts):
             return []
 
-        if parts[0] == RuleType.TYPEATTRIBUTE:
-            # Remove generated typeattribute as it does not map to a source rule
-            if is_type_generated(parts[1]):
-                return []
+        varargs: List[str] = []
 
-            # Rename typeattribute to attribute to match source
-            # typeattribute rules in source expand to typeattributeset,
-            # while attribute rules expand to typeattribute
-            parts[0] = RuleType.ATTRIBUTE.value
-        elif parts[0] == CilRuleType.TYPEATTRIBUTESET:
-            # TODO: remove version of types
-            # theorethically the version exists, but if expandtypeattribute
-            # is set to true then a single-value typeattributeset will
-            # cause expansion
-            # Example:
-            # (expandtypeattribute (netutils_wrapper_31_0) true)
-            # (typeattributeset netutils_wrapper_31_0 (netutils_wrapper))
+        match parts[0]:
+            case (
+                RuleType.ALLOW.value
+                | RuleType.NEVERALLOW.value
+                | RuleType.AUDITALLOW.value
+                | RuleType.DONTAUDIT.value
+            ):
+                # (allow a b (c (...)))
+                assert len(parts) == 4, line
+                assert len(parts[3]) == 2, line
+                assert isinstance(parts[1], str), line
+                assert isinstance(parts[2], str), line
+                assert isinstance(parts[3][0], str), line
+                assert isinstance(parts[3][1], list), line
 
-            if is_conditional_typeattr(parts[2]):
-                varargs = structure_typeattr_varargs(parts[2])
-                if varargs is None:
+                for part in parts[3][1]:
+                    assert isinstance(part, str)
+                    varargs.append(part)
+
+                src = remove_type_suffix(parts[1])
+                if is_type_generated(src):
+                    src = type_redirect(src)
+
+                dst = remove_type_suffix(parts[2])
+                if is_type_generated(dst):
+                    dst = type_redirect(dst)
+
+                rule = Rule(
+                    parts[0],
+                    tuple([src, dst, parts[3][0]]),
+                    tuple(varargs),
+                )
+                return [rule]
+            case (
+                CilRuleType.ALLOWX.value
+                | CilRuleType.NEVERALLOWX.value
+                | CilRuleType.DONTAUDITX.value
+            ):
+                # (allowx a b (ioctl c (... (range . .) ((range . .)))))
+                # TODO: remove ioctl to minimize size
+                assert len(parts) == 4, line
+                assert len(parts[3]) == 3, line
+                assert isinstance(parts[1], str), line
+                assert isinstance(parts[2], str), line
+                assert isinstance(parts[3], list), line
+                assert isinstance(parts[3][0], str), line
+                assert parts[3][0] == 'ioctl', line
+                assert isinstance(parts[3][1], str), line
+                assert isinstance(parts[3][2], list), line
+
+                for ioctl in unpack_ioctls(parts[3][2]):
+                    varargs.append(ioctl)
+
+                src = remove_type_suffix(parts[1])
+                if is_type_generated(src):
+                    src = type_redirect(src)
+
+                dst = remove_type_suffix(parts[2])
+                if is_type_generated(dst):
+                    dst = type_redirect(dst)
+
+                if parts[0] == CilRuleType.ALLOWX.value:
+                    rule_type = RuleType.ALLOWXPERM.value
+                elif parts[0] == CilRuleType.NEVERALLOWX.value:
+                    rule_type = RuleType.NEVERALLOWXPERM.value
+                elif parts[0] == CilRuleType.DONTAUDITX.value:
+                    rule_type = RuleType.DONTAUDITXPERM.value
+                else:
+                    assert False, line
+
+                rule = Rule(
+                    rule_type,
+                    tuple([src, dst, parts[3][1]]),
+                    tuple(varargs),
+                )
+                return [rule]
+            case CilRuleType.TYPEATTRIBUTE.value:
+                # (typeattribute a)
+                assert len(parts) == 2, line
+                assert isinstance(parts[1], str), line
+
+                # Remove generated typeattribute as it does not map to a source rule
+                if is_type_generated(parts[1]):
                     return []
 
-                conditional_types_map.setdefault(parts[1], varargs)
-            else:
-                # Expand typeattributeset into multiple typeattribute rules
-                rules = []
+                t = remove_type_suffix(parts[1])
+
+                # Rename typeattribute to attribute to match source
+                # typeattribute rules in source expand to typeattributeset,
+                # while attribute rules expand to typeattribute
+                rule = Rule(
+                    RuleType.ATTRIBUTE.value,
+                    tuple([t]),
+                    tuple(),
+                )
+                return [rule]
+            case CilRuleType.TYPEATTRIBUTESET.value:
+                assert isinstance(parts[1], str), line
                 v = remove_type_suffix(parts[1])
+
+                # Process conditional types and add them to a map to be replaced
+                # into the other rules later
+                if is_conditional_typeattr(parts[2]):
+                    assert isinstance(parts[2], list)
+
+                    conditional_type = create_conditional_type(parts[2])
+                    if conditional_type is None:
+                        return []
+
+                    assert v not in conditional_types_map
+                    conditional_types_map[v] = conditional_type
+                    return []
+
+                # Expand typeattributeset into multiple typeattribute rules
+                expanded_rules: List[Rule] = []
+
                 for t in parts[2]:
                     assert isinstance(t, str)
                     t = remove_type_suffix(t)
 
-                    rule = Rule(RuleType.TYPEATTRIBUTE.value, [t, v], [])
-                    rules.append(rule)
+                    rule = Rule(
+                        RuleType.TYPEATTRIBUTE.value,
+                        tuple([t, v]),
+                        tuple(),
+                    )
+                    expanded_rules.append(rule)
 
-                return rules
+                return expanded_rules
+            case RuleType.GENFSCON.value:
+                # (genfscon sysfs /kernel/aov (u object_r sysfs_adspd ((s0) (s0))))
+                assert len(parts) == 4, line
+                assert len(parts[3]) == 4, line
+                assert len(parts[3][3]) == 2, line
+                assert len(parts[3][3][0]) == 1, line
+                assert len(parts[3][3][1]) == 1, line
+                assert isinstance(parts[1], str), line
+                assert isinstance(parts[2], str), line
+                assert isinstance(parts[3][2], str), line
 
-            return []
-        elif parts[0] == CilRuleType.TYPETRANSITION:
-            parts[0] = RuleType.TYPE_TRANSITION.value
-        elif parts[0] == CilRuleType.EXPANDTYPEATTRIBUTE:
-            parts[0] = RuleType.EXPANDATTRIBUTE.value
-        elif parts[0] == CilRuleType.ALLOWX:
-            parts[0] = RuleType.ALLOWXPERM.value
-        elif parts[0] == CilRuleType.NEVERALLOWX:
-            parts[0] = RuleType.NEVERALLOWXPERM.value
-        elif parts[0] == CilRuleType.DONTAUDITX:
-            parts[0] = RuleType.DONTAUDITXPERM.value
+                rule = Rule(
+                    parts[0],
+                    tuple([parts[1], parts[2], parts[3][2]]),
+                    tuple(),
+                )
+                genfs_rules.append(rule)
+                return []
+            case CilRuleType.TYPETRANSITION.value:
+                # (typetransition a b c d)
+                # (typetransition a b c "[userfaultfd]" d)
+                assert len(parts) in [5, 6], line
+                assert isinstance(parts[1], str), line
+                assert isinstance(parts[2], str), line
+                assert isinstance(parts[3], str), line
+                assert isinstance(parts[-1], str), line
 
-        rule_type = RuleType[parts[0].upper()].value
-        parts = parts[1:]
+                if len(parts) == 6:
+                    assert isinstance(parts[4], str), line
+                    # assert parts[4] == '"[userfaultfd]"', line
+                    varargs = [parts[4]]
+                else:
+                    varargs = []
 
-        match rule_type:
-            case (
-                RuleType.ALLOW
-                | RuleType.NEVERALLOW
-                | RuleType.AUDITALLOW
-                | RuleType.DONTAUDIT
-            ):
+                src = remove_type_suffix(parts[1])
+                if is_type_generated(src):
+                    src = type_redirect(src)
+
+                dst = remove_type_suffix(parts[2])
+                if is_type_generated(dst):
+                    src = type_redirect(dst)
+
+                rule = Rule(
+                    RuleType.TYPE_TRANSITION.value,
+                    tuple([src, dst, parts[3], parts[-1]]),
+                    tuple(varargs),
+                )
+                return [rule]
+            case CilRuleType.EXPANDTYPEATTRIBUTE.value:
+                # (expandtypeattribute (a) true)
                 assert len(parts) == 3, line
-                assert len(parts[2]) == 2, line
-                varargs = parts[2][1]
-                src = remove_type_suffix(parts[0])
-                dst = remove_type_suffix(parts[1])
-                new_parts = [src, dst, parts[2][0]]
-            case (
-                RuleType.ALLOWXPERM
-                | RuleType.NEVERALLOWXPERM
-                | RuleType.DONTAUDITXPERM
-            ):
-                assert len(parts) == 3, line
-                assert len(parts[2]) == 3, line
-                varargs = list(unpack_ioctls(parts[2][2]))
-                src = remove_type_suffix(parts[0])
-                dst = remove_type_suffix(parts[1])
-                new_parts = [src, dst] + parts[2][:2]
-            case RuleType.ATTRIBUTE:
-                assert len(parts) == 1, line
-                varargs = []
-                t = remove_type_suffix(parts[0])
-                new_parts = [t]
-            case RuleType.GENFSCON:
-                assert len(parts) == 3, line
-                assert len(parts[2]) == 4, line
-                assert len(parts[2][3]) == 2, line
-                assert len(parts[2][3][0]) == 1, line
-                assert len(parts[2][3][1]) == 1, line
-                varargs = []
-                new_parts = parts[:2] + [parts[2][2]]
-            case RuleType.TYPE_TRANSITION:
-                assert len(parts) in [4, 5], line
-                varargs = parts[3:-1]
-                src = remove_type_suffix(parts[0])
-                dst = remove_type_suffix(parts[1])
-                new_parts = [src, dst, parts[2], parts[-1]]
-            case RuleType.EXPANDATTRIBUTE:
-                assert len(parts[0]) == 1
-                varargs = []
-                new_parts = [parts[0][0]] + parts[1:]
+                assert isinstance(parts[1], list), line
+                assert len(parts[1]) == 1, line
+                assert isinstance(parts[1][0], str), line
+                assert isinstance(parts[2], str), line
+
+                rule = Rule(
+                    RuleType.EXPANDATTRIBUTE.value,
+                    tuple([parts[1][0], parts[2]]),
+                    tuple(),
+                )
+                return [rule]
             case _:
                 assert False, line
-
-        rule = cls(rule_type, new_parts, varargs)
-
-        if rule_type == RuleType.GENFSCON:
-            genfs_rules.append(rule)
-            return []
-
-        return [rule]

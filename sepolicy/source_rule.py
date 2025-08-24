@@ -3,20 +3,35 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import Generator, List
 
 from classmap import Classmap
+from conditional_type import ConditionalType
 from rule import (
     Rule,
     RuleType,
-    flatten_parts,
-    parts_list,
+    raw_part,
+    raw_parts_list,
     remove_ioctl_zeros,
     unpack_line,
 )
 
 
-def is_allow_process_sigchld(parts: parts_list):
+def flatten_parts(parts: raw_part) -> Generator[str, None, None]:
+    if isinstance(parts, str):
+        yield parts
+        return
+
+    assert isinstance(parts, list)
+
+    for part in parts:
+        if isinstance(part, list):
+            yield from flatten_parts(part)
+        else:
+            yield part
+
+
+def is_allow_process_sigchld(parts: raw_parts_list):
     return (
         parts[0] == RuleType.ALLOW
         and len(parts) == 5
@@ -24,27 +39,26 @@ def is_allow_process_sigchld(parts: parts_list):
     )
 
 
-def structure_conditional_type(parts: parts_list):
-    positive_types = []
-    negative_types = []
+def structure_conditional_type(parts: raw_part):
+    if isinstance(parts, str):
+        return parts
+
+    positives: List[str] = []
+    negatives: List[str] = []
+
+    if len(parts) == 1 and parts[0] == '*':
+        assert False
+        return ConditionalType([], [], True)
 
     for part in parts:
+        assert isinstance(part, str)
         if part.startswith('-'):
-            negative_types.append(part[1:])
+            negatives.append(part[1:])
         else:
             assert part[0].isalpha() or part[0] == '$', parts
-            positive_types.append(part)
+            positives.append(part)
 
-    t = []
-    if len(positive_types):
-        t.append('and')
-        t.append(frozenset(positive_types))
-
-    if len(negative_types):
-        t.append('not')
-        t.append(frozenset(negative_types))
-
-    return tuple(t)
+    return ConditionalType(positives, negatives, False)
 
 
 class SourceRule(Rule):
@@ -61,12 +75,7 @@ class SourceRule(Rule):
         if not parts:
             return []
 
-        if not isinstance(parts[0], str):
-            raise ValueError(f'Invalid line: {line}')
-
-        try:
-            rule_type = RuleType[parts[0].upper()].value
-        except KeyError:
+        if not isinstance(parts[0], str) or len(parts) == 1:
             raise ValueError(f'Invalid line: {line}')
 
         # Remove allow $3 $1:process sigchld as it is part of an ifelse
@@ -75,75 +84,116 @@ class SourceRule(Rule):
         if is_allow_process_sigchld(parts):
             return []
 
-        parts = parts[1:]
-        rules = []
+        rules: List[Rule] = []
 
-        match rule_type:
+        match parts[0]:
             case (
-                RuleType.ALLOW
-                | RuleType.NEVERALLOW
-                | RuleType.AUDITALLOW
-                | RuleType.DONTAUDIT
+                RuleType.ALLOW.value
+                | RuleType.NEVERALLOW.value
+                | RuleType.AUDITALLOW.value
+                | RuleType.DONTAUDIT.value
             ):
-                assert len(parts) == 4, line
+                assert len(parts) == 5, line
 
-                if isinstance(parts[0], list):
-                    parts[0] = structure_conditional_type(parts[0])
+                src = structure_conditional_type(parts[1])
+                dst = structure_conditional_type(parts[2])
 
-                if isinstance(parts[1], list):
-                    target_domain = structure_conditional_type(parts[1])
-                else:
-                    target_domain = parts[1]
-
-                if isinstance(parts[2], list):
-                    classes = parts[2]
-                else:
-                    classes = [parts[2]]
-
+                classes = list(flatten_parts(parts[3]))
                 classmap.sort_classes(classes)
+                varargs = list(flatten_parts(parts[4]))
 
-                varargs = list(flatten_parts(parts[3]))
                 for class_name in classes:
-                    new_parts = [parts[0]] + [target_domain, class_name]
                     classmap.sort_perms(class_name, varargs)
-                    rule = Rule(rule_type, new_parts, varargs)
+                    rule = Rule(
+                        parts[0],
+                        tuple([src, dst, class_name]),
+                        tuple(varargs),
+                    )
                     rules.append(rule)
-            case RuleType.TYPE_TRANSITION:
-                assert len(parts) in [4, 5], line
+            case RuleType.TYPE_TRANSITION.value:
+                assert len(parts) in [5, 6], line
+                assert isinstance(parts[1], str), line
+                assert isinstance(parts[2], str), line
+                assert isinstance(parts[4], str), line
 
-                if not isinstance(parts[2], list):
-                    parts[2] = [parts[2]]
+                class_names = flatten_parts(parts[3])
 
-                varargs = parts[4:]
-                parts = parts[:4]
-                for class_name in parts[2]:
-                    new_parts = parts[:2] + [class_name] + parts[3:]
-                    rule = Rule(rule_type, new_parts, varargs)
+                # Optional string for userfaultfd
+                if len(parts) == 6:
+                    assert isinstance(parts[5], str), line
+                    assert parts[5] == '"[userfaultfd]"', line
+                    varargs = [parts[5]]
+                else:
+                    varargs = []
+
+                for class_name in class_names:
+                    rule = Rule(
+                        parts[0],
+                        tuple([parts[1], parts[2], class_name, parts[4]]),
+                        tuple(varargs),
+                    )
                     rules.append(rule)
-            case RuleType.ALLOWXPERM | RuleType.NEVERALLOWXPERM:
-                assert len(parts) == 5
-                assert parts[3] == 'ioctl'
-                if not isinstance(parts[4], list):
-                    parts[4] = [parts[4]]
-                varargs = remove_ioctl_zeros(parts[4])
-                rule = Rule(rule_type, parts[:4], varargs)
+            case RuleType.ALLOWXPERM.value | RuleType.NEVERALLOWXPERM.value:
+                assert len(parts) == 6
+                assert isinstance(parts[1], str), line
+                assert isinstance(parts[2], str), line
+                assert isinstance(parts[3], str), line
+                assert isinstance(parts[4], str), line
+                assert parts[4] == 'ioctl'
+
+                varargs = list(flatten_parts(parts[5]))
+                ioctls = remove_ioctl_zeros(varargs)
+
+                rule = Rule(
+                    parts[0],
+                    tuple([parts[1], parts[2], parts[3]]),
+                    tuple(ioctls),
+                )
                 rules.append(rule)
-            case RuleType.ATTRIBUTE:
-                assert len(parts) == 1, line
-                rule = Rule(rule_type, parts, [])
-                rules.append(rule)
-            case RuleType.TYPEATTRIBUTE:
+            case RuleType.ATTRIBUTE.value:
                 assert len(parts) == 2, line
-                rule = Rule(rule_type, parts, [])
+                assert isinstance(parts[1], str), line
+
+                rule = Rule(
+                    parts[0],
+                    tuple([parts[1]]),
+                    tuple(),
+                )
+                return [rule]
+            case RuleType.TYPEATTRIBUTE.value:
+                assert len(parts) == 3, line
+                assert isinstance(parts[1], str), line
+                assert isinstance(parts[2], str), line
+
+                rule = Rule(
+                    parts[0],
+                    tuple([parts[1], parts[2]]),
+                    tuple(),
+                )
                 rules.append(rule)
-            case RuleType.TYPE:
-                # Convert type rules to typeattribute to allow matching
+            case RuleType.TYPE.value:
+                assert isinstance(parts[1], str), line
+
+                # Convert type rules to typeattribute to allow easy
                 # with split typeattributeset rules
-                for t in parts[1:]:
-                    rule = Rule(RuleType.TYPEATTRIBUTE.value, [parts[0], t], [])
+                for t in parts[2:]:
+                    assert isinstance(t, str)
+                    rule = Rule(
+                        RuleType.TYPEATTRIBUTE.value,
+                        tuple([parts[1], t]),
+                        tuple(),
+                    )
                     rules.append(rule)
-            case RuleType.EXPANDATTRIBUTE:
-                rule = Rule(rule_type, parts, [])
+            case RuleType.EXPANDATTRIBUTE.value:
+                assert len(parts) == 3
+                assert isinstance(parts[1], str), line
+                assert isinstance(parts[2], str), line
+
+                rule = Rule(
+                    parts[0],
+                    tuple([parts[1], parts[2]]),
+                    tuple(),
+                )
                 rules.append(rule)
             case _:
                 assert False, line
