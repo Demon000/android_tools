@@ -252,7 +252,7 @@ class CilRule(Rule):
 
                 rule = Rule(
                     parts[0],
-                    tuple([src, dst, parts[3][0]]),
+                    (src, dst, parts[3][0]),
                     tuple(varargs),
                 )
                 return [rule]
@@ -294,7 +294,7 @@ class CilRule(Rule):
 
                 rule = Rule(
                     rule_type,
-                    tuple([src, dst, parts[3][1]]),
+                    (src, dst, parts[3][1]),
                     tuple(varargs),
                 )
                 return [rule]
@@ -314,8 +314,8 @@ class CilRule(Rule):
                 # while attribute rules expand to typeattribute
                 rule = Rule(
                     RuleType.ATTRIBUTE.value,
-                    tuple([t]),
-                    tuple(),
+                    (t, ),
+                    (),
                 )
                 return [rule]
             case CilRuleType.TYPEATTRIBUTESET.value:
@@ -344,8 +344,8 @@ class CilRule(Rule):
 
                     rule = Rule(
                         RuleType.TYPEATTRIBUTE.value,
-                        tuple([t, v]),
-                        tuple(),
+                        (t, v),
+                        (),
                     )
                     expanded_rules.append(rule)
 
@@ -363,8 +363,8 @@ class CilRule(Rule):
 
                 rule = Rule(
                     parts[0],
-                    tuple([parts[1], parts[2], parts[3][2]]),
-                    tuple(),
+                    (parts[1], parts[2], parts[3][2]),
+                    (),
                 )
                 genfs_rules.append(rule)
                 return []
@@ -394,7 +394,7 @@ class CilRule(Rule):
 
                 rule = Rule(
                     RuleType.TYPE_TRANSITION.value,
-                    tuple([src, dst, parts[3], parts[-1]]),
+                    (src, dst, parts[3], parts[-1]),
                     tuple(varargs),
                 )
                 return [rule]
@@ -408,8 +408,8 @@ class CilRule(Rule):
 
                 rule = Rule(
                     RuleType.EXPANDATTRIBUTE.value,
-                    tuple([parts[1][0], parts[2]]),
-                    tuple(),
+                    (parts[1][0], parts[2]),
+                    (),
                 )
                 return [rule]
             case _:

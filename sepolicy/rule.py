@@ -234,7 +234,7 @@ class Rule:
     ):
         self.rule_type = rule_type
         self.parts = parts
-        self.varargs = tuple(varargs)
+        self.varargs = varargs
         self.is_macro = is_macro
         self.hash_values: Tuple[rule_part_or_varargs, ...] = tuple(
             [self.rule_type] + list(self.parts) + [self.varargs]

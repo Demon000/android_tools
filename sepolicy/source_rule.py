@@ -92,7 +92,7 @@ class SourceRule(Rule):
                     classmap.sort_perms(class_name, varargs)
                     rule = Rule(
                         parts[0],
-                        tuple([src, dst, class_name]),
+                        (src, dst, class_name),
                         tuple(varargs),
                     )
                     rules.append(rule)
@@ -115,7 +115,7 @@ class SourceRule(Rule):
                 for class_name in class_names:
                     rule = Rule(
                         parts[0],
-                        tuple([parts[1], parts[2], class_name, parts[4]]),
+                        (parts[1], parts[2], class_name, parts[4]),
                         tuple(varargs),
                     )
                     rules.append(rule)
@@ -139,7 +139,7 @@ class SourceRule(Rule):
 
                 rule = Rule(
                     parts[0],
-                    tuple([parts[1], parts[2], parts[3]]),
+                    (parts[1], parts[2], parts[3]),
                     tuple(ioctls),
                 )
                 rules.append(rule)
@@ -149,8 +149,8 @@ class SourceRule(Rule):
 
                 rule = Rule(
                     parts[0],
-                    tuple([parts[1]]),
-                    tuple(),
+                    (parts[1],),
+                    (),
                 )
                 return [rule]
             case RuleType.TYPEATTRIBUTE.value:
@@ -160,8 +160,8 @@ class SourceRule(Rule):
 
                 rule = Rule(
                     parts[0],
-                    tuple([parts[1], parts[2]]),
-                    tuple(),
+                    (parts[1], parts[2]),
+                    (),
                 )
                 rules.append(rule)
             case RuleType.TYPE.value:
@@ -173,8 +173,8 @@ class SourceRule(Rule):
                     assert isinstance(t, str)
                     rule = Rule(
                         RuleType.TYPEATTRIBUTE.value,
-                        tuple([parts[1], t]),
-                        tuple(),
+                        (parts[1], t),
+                        (),
                     )
                     rules.append(rule)
             case RuleType.EXPANDATTRIBUTE.value:
@@ -184,8 +184,8 @@ class SourceRule(Rule):
 
                 rule = Rule(
                     parts[0],
-                    tuple([parts[1], parts[2]]),
-                    tuple(),
+                    (parts[1], parts[2]),
+                    (),
                 )
                 rules.append(rule)
             case _:

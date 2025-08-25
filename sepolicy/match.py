@@ -48,7 +48,7 @@ class RuleMatch:
         self.hash = hash(self.hash_values)
 
         args = tuple(arg_values[k] for k in sorted(arg_values.keys()))
-        self.macro = Rule(macro_name, args, tuple(), is_macro=True)
+        self.macro = Rule(macro_name, args, (), is_macro=True)
 
     def filled_args(self):
         return self.arg_values.keys()
@@ -289,12 +289,12 @@ def merge_typeattribute_rules(mld: MultiLevelDict[Rule]):
         mld.remove(rule.hash_values, rule, RULE_DYNAMIC_PARTS_INDEX)
 
     for t, values in types.items():
-        rule = Rule(
+        new_rule = Rule(
             RuleType.TYPE.value,
-            tuple([t]),
+            (t,),
             tuple(values),
         )
-        mld.add(rule.hash_values, rule, RULE_DYNAMIC_PARTS_INDEX)
+        mld.add(new_rule.hash_values, new_rule, RULE_DYNAMIC_PARTS_INDEX)
 
     color_print(
         f'Merged {len(removed_rules)} typeattributes into {len(types)} types',
@@ -308,7 +308,7 @@ def merge_ioctl_rules(mld: MultiLevelDict[Rule]):
         match_tuple = (rule_type.value, None, None, None, None)
         for matched_rule in mld.match(match_tuple):
             # Keep varargs out of the key
-            key = tuple([matched_rule.rule_type] + list(matched_rule.parts))
+            key = (matched_rule.rule_type, *matched_rule.parts)
 
             if key not in rules_dict:
                 rules_dict[key] = set()
@@ -386,12 +386,12 @@ def replace_type_perm(
                 if varargs_set == rule_varargs_set:
                     continue
 
-                rule = Rule(
+                new_rule = Rule(
                     matched_rule.rule_type,
                     matched_rule.parts,
                     tuple(varargs_set),
                 )
-                added_rules.add(rule)
+                added_rules.add(new_rule)
                 removed_rules.add(matched_rule)
 
 
@@ -488,12 +488,12 @@ def replace_ioctls(
             if varargs_set == rule_varargs_set:
                 continue
 
-            rule = Rule(
+            new_rule = Rule(
                 matched_rule.rule_type,
                 matched_rule.parts,
                 tuple(varargs_set),
             )
-            added_rules.add(rule)
+            added_rules.add(new_rule)
             removed_rules.add(matched_rule)
 
     for rule in removed_rules:
@@ -521,13 +521,11 @@ def merge_class_set_rule_type(
     match_tuple = (rule_type.value, None, None, None, None)
     for matched_rule in mld.match(match_tuple):
         # Keep class out of the key
-        key = tuple(
-            [
-                matched_rule.rule_type,
-                matched_rule.parts[0],
-                matched_rule.parts[1],
-                matched_rule.varargs,
-            ]
+        key = (
+            matched_rule.rule_type,
+            matched_rule.parts[0],
+            matched_rule.parts[1],
+            matched_rule.varargs,
         )
         if key not in rules_dict:
             rules_dict[key] = (set(), set())
@@ -610,13 +608,11 @@ def merge_target_domains_rule_type(
             continue
 
         # Keep target domain out of the key
-        key = tuple(
-            [
-                matched_rule.rule_type,
-                matched_rule.parts[0],
-                matched_rule.parts[2],
-                matched_rule.varargs,
-            ]
+        key = (
+            matched_rule.rule_type,
+            matched_rule.parts[0],
+            matched_rule.parts[2],
+            matched_rule.varargs,
         )
 
         if key not in rules_dict:
@@ -640,7 +636,11 @@ def merge_target_domains_rule_type(
 
         matched_rule = next(iter(rules))
         # TODO: find other places where we should be sorting sets to keep an order
-        target_domain = ConditionalType(sorted(matched_target_domains), [], False)
+        target_domain = ConditionalType(
+            sorted(matched_target_domains),
+            [],
+            False,
+        )
         new_rule = Rule(
             matched_rule.rule_type,
             tuple(

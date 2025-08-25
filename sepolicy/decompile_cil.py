@@ -15,7 +15,7 @@ from typing import Dict, List, Optional, Set, Tuple
 from cil_rule import CilRule
 from classmap import SELINUX_INCLUDE_PATH, Classmap
 from conditional_type import ConditionalType
-from config import default_variables
+from config import get_default_variables
 from macro import (
     categorize_macros,
     decompile_ioctl_defines,
@@ -167,12 +167,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
     assert args.macros
 
-    variables = {**default_variables}
-
-    for kv in args.var:
-        k, v = kv.split('=')
-        variables[k] = v
-
     output_dir: str = args.output
     kernel_dir: str = args.kernel
     selinux_dir: Optional[str] = args.selinux
@@ -197,6 +191,12 @@ if __name__ == '__main__':
     input_text, macros_text = read_macros(macro_file_paths)
 
     print_variable_ifelse(macros_text)
+
+    variables = get_default_variables(mld)
+
+    for kv in args.var:
+        k, v = kv.split('=')
+        variables[k] = v
 
     expanded_macros_text = expand_macro_bodies(
         input_text,

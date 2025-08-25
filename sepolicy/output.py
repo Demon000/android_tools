@@ -85,11 +85,14 @@ def extract_domain_type(domain: str):
     domain = re.sub(r'_server$', '', domain)
     domain = re.sub(r'_default$', '', domain)
     domain = re.sub(r'_hwservice$', '', domain)
+    domain = re.sub(r'_service$', '', domain)
     domain = re.sub(r'_qti$', '', domain)
     return domain
 
 
 DEVICE_TYPE_RULES_NAME = 'device.te'
+SERVICE_TYPE_RULES_NAME = 'service.te'
+HWSERVICE_TYPE_RULES_NAME = 'hwservice.te'
 FILE_TYPE_RULES_NAME = 'file.te'
 PROPERTY_RULES_NAME = 'property.te'
 LEFTOVER_RULES_NAME = 'leftover.te'
@@ -98,6 +101,11 @@ ATTRIBUTE_RULES_NAME = 'attribute'
 
 def group_rules(mld: MultiLevelDict[Rule]):
     grouped_rules: Dict[str, Set[Rule]] = {}
+
+    # TODO: better rule grouping
+    #
+    # TODO: Remove attribute rules?
+    # They're auto generated when declaring a type.
 
     for rule in mld.walk():
         # device types
@@ -108,6 +116,20 @@ def group_rules(mld: MultiLevelDict[Rule]):
             'file_type' in rule.varargs or 'fs_type' in rule.varargs
         ):
             name = FILE_TYPE_RULES_NAME
+        # service types
+        elif (
+            rule.rule_type == RuleType.TYPE.value
+            and isinstance(rule.parts[0], str)
+            and rule.parts[0].endswith('_service')
+        ):
+            name = SERVICE_TYPE_RULES_NAME
+        # hwservice types
+        elif (
+            rule.rule_type == RuleType.TYPE.value
+            and isinstance(rule.parts[0], str)
+            and rule.parts[0].endswith('_hwservice')
+        ):
+            name = HWSERVICE_TYPE_RULES_NAME
         # attributes
         elif (
             rule.rule_type == RuleType.ATTRIBUTE.value
@@ -133,7 +155,7 @@ def group_rules(mld: MultiLevelDict[Rule]):
 
 def rules_sort_key(rule: Rule):
     compare_values = [str(h) for h in rule.hash_values]
-    return (rule.is_macro, compare_values)
+    return (not rule.is_macro, compare_values)
 
 
 def output_grouped_rules(grouped_rules: Dict[str, Set[Rule]], output_dir: str):
