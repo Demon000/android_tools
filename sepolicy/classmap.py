@@ -51,6 +51,11 @@ class Classmap:
                 self.__class_perms_index_map.setdefault(class_name, {})
                 self.__class_perms_index_map[class_name][perm_name] = perm_index
 
+    def class_types(self, t: str):
+        for key in self.__class_index_map:
+            if key.endswith(t):
+                yield key
+
     def class_perms(self, class_name: str):
         return list(self.__class_perms_index_map[class_name].keys())
 

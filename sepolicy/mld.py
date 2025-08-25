@@ -38,6 +38,9 @@ class MultiLevelDict(Generic[T]):
         self.__data: Dict[int, Dict[Tuple[Hashable, ...], Set[T]]] = {}
         self.__all_data: Set[T] = set()
 
+    def __len__(self):
+        return len(self.__all_data)
+
     def data(self):
         return self.__data
 

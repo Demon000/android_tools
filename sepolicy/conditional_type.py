@@ -75,14 +75,8 @@ class ConditionalType(IConditionalType):
         return self.__is_all
 
     def __eq__(self, other: object):
-        if isinstance(other, str):
+        if not isinstance(other, IConditionalType):
             return False
-
-        # Avoid walking the type tree
-        assert (
-            type(other) is ConditionalType
-            or type(other) is ConditionalTypeRedirect
-        )
 
         if self.__hash != other.hash:
             return False
@@ -122,6 +116,9 @@ class ConditionalTypeRedirect(IConditionalType):
         self.__t = t
         self.__m = m
         self.__i = i
+
+    # TODO: is it necessary to do comparisons by actual value, or is it
+    # enough to compare the generated type name
 
     def __get_c(self):
         if self.__t not in self.__m:

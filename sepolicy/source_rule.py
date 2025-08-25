@@ -3,32 +3,19 @@
 
 from __future__ import annotations
 
-from typing import Generator, List
+from typing import List
 
 from classmap import Classmap
 from conditional_type import ConditionalType
 from rule import (
     Rule,
     RuleType,
+    flatten_parts,
     raw_part,
     raw_parts_list,
     remove_ioctl_zeros,
     unpack_line,
 )
-
-
-def flatten_parts(parts: raw_part) -> Generator[str, None, None]:
-    if isinstance(parts, str):
-        yield parts
-        return
-
-    assert isinstance(parts, list)
-
-    for part in parts:
-        if isinstance(part, list):
-            yield from flatten_parts(part)
-        else:
-            yield part
 
 
 def is_allow_process_sigchld(parts: raw_parts_list):
@@ -47,7 +34,6 @@ def structure_conditional_type(parts: raw_part):
     negatives: List[str] = []
 
     if len(parts) == 1 and parts[0] == '*':
-        assert False
         return ConditionalType([], [], True)
 
     for part in parts:
@@ -133,7 +119,13 @@ class SourceRule(Rule):
                         tuple(varargs),
                     )
                     rules.append(rule)
-            case RuleType.ALLOWXPERM.value | RuleType.NEVERALLOWXPERM.value:
+            case (
+                RuleType.ALLOWXPERM.value
+                | RuleType.NEVERALLOWXPERM.value
+                | RuleType.DONTAUDITXPERM.value
+            ):
+                # TODO: ioctl rules are split at comments by the compiler
+                # merge them back
                 assert len(parts) == 6
                 assert isinstance(parts[1], str), line
                 assert isinstance(parts[2], str), line

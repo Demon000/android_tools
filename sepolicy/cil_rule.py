@@ -262,7 +262,6 @@ class CilRule(Rule):
                 | CilRuleType.DONTAUDITX.value
             ):
                 # (allowx a b (ioctl c (... (range . .) ((range . .)))))
-                # TODO: remove ioctl to minimize size
                 assert len(parts) == 4, line
                 assert len(parts[3]) == 3, line
                 assert isinstance(parts[1], str), line

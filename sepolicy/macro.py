@@ -8,10 +8,10 @@ import subprocess
 from functools import partial
 from itertools import chain
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Set, Tuple
 
 from classmap import Classmap
-from rule import Rule
+from rule import Rule, flatten_parts, unpack_line
 from source_rule import SourceRule
 from utils import Color, color_print, split_normalize_text
 
@@ -258,3 +258,77 @@ def decompile_macros(
         expanded_macro_rules.append((name, rules))
 
     return expanded_macro_rules
+
+
+def decompile_perms(perms: List[Tuple[str, str]]):
+    decompiled_perms: List[Tuple[str, Set[str]]] = []
+
+    for name, text in perms:
+        parts = unpack_line(
+            text,
+            '{',
+            '}',
+            ' ',
+            open_by_default=True,
+            ignored_chars=';',
+        )
+        parts_set = set(flatten_parts(parts))
+        decompiled_perms.append((name, parts_set))
+
+    # Prioritize replacement of largest perm macros
+    decompiled_perms.sort(key=lambda np: len(np[1]), reverse=True)
+
+    return decompiled_perms
+
+
+def unpack_ioctl(part: str):
+    if '-' not in part:
+        yield hex(int(part, base=16))
+        return
+
+    parts = part.split('-')
+    assert len(parts) == 2
+
+    start_ioctl = int(parts[0], base=16)
+    end_ioctl = int(parts[1], base=16)
+
+    for n in range(start_ioctl, end_ioctl + 1):
+        yield hex(n)
+
+
+def decompile_ioctls(ioctls: List[Tuple[str, str]]):
+    decompiled_ioctls: List[Tuple[str, Set[str]]] = []
+
+    for name, text in ioctls:
+        parts = unpack_line(
+            text,
+            '{',
+            '}',
+            ' ',
+            open_by_default=True,
+            ignored_chars=';',
+        )
+        flattened_parts = flatten_parts(parts)
+        unpacked_ioctls = map(unpack_ioctl, flattened_parts)
+        parts_set = set(chain.from_iterable(unpacked_ioctls))
+        decompiled_ioctls.append((name, parts_set))
+
+    return decompiled_ioctls
+
+
+def decompile_ioctl_defines(ioctl_defines: List[Tuple[str, str]]):
+    decompiled_ioctl_defines: Dict[str, str] = {}
+
+    for name, text in ioctl_defines:
+        value = hex(int(text, base=16))
+        if value in decompiled_ioctl_defines:
+            existing_name = decompiled_ioctl_defines[value]
+            color_print(
+                f'Ioctl {name}={value} already defined as {existing_name}',
+                color=Color.YELLOW,
+            )
+            continue
+
+        decompiled_ioctl_defines[value] = name
+
+    return decompiled_ioctl_defines

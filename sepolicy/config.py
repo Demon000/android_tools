@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Variables extracted from system/sepolicy/build/soong/policy.go
+# TODO: autodetect
 default_variables = {
     # MlsSens = 1
     'mls_num_sens': '1',
@@ -27,7 +28,7 @@ default_variables = {
     'target_compatible_property': 'true',
 
     # BUILD_BROKEN_TREBLE_SYSPROP_NEVERALLOW
-    'target_treble_sysprop_neverallow': 'false',
+    'target_treble_sysprop_neverallow': 'true',
 
     # BUILD_BROKEN_ENFORCE_SYSPROP_OWNER
     'target_enforce_sysprop_owner': 'true',

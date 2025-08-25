@@ -5,17 +5,20 @@ from __future__ import annotations
 
 import re
 from enum import Enum
-from typing import List, Optional, Tuple, Union
+from typing import Generator, Iterable, List, Optional, Tuple, Union
 
+from class_set import ClassSet
 from conditional_type import IConditionalType
 
 macro_argument_regex = re.compile(r'\$(\d+)')
 
 raw_part = Union[str, List['raw_part']]
 raw_parts_list = List[raw_part]
-rule_part = Union[str, IConditionalType]
+rule_part = Union[str, IConditionalType, ClassSet]
 rule_part_or_varargs = Union[rule_part, Tuple[str, ...]]
 
+
+RULE_DYNAMIC_PARTS_INDEX = 1
 
 
 VERSION_SUFFIXES = set(
@@ -94,7 +97,21 @@ def unpack_line(
     return current[0] if current else []
 
 
-def remove_ioctl_zeros(ioctls: List[str]):
+def flatten_parts(parts: raw_part) -> Generator[str, None, None]:
+    if isinstance(parts, str):
+        yield parts
+        return
+
+    assert isinstance(parts, list)
+
+    for part in parts:
+        if isinstance(part, list):
+            yield from flatten_parts(part)
+        else:
+            yield part
+
+
+def remove_ioctl_zeros(ioctls: Iterable[str]):
     return list(map(lambda i: hex(int(i, base=16)), ioctls))
 
 
@@ -113,6 +130,22 @@ class RuleType(str, Enum):
     TYPE_TRANSITION = 'type_transition'
     TYPEATTRIBUTE = 'typeattribute'
 
+
+ALLOW_RULE_TYPES = [
+    RuleType.ALLOW,
+    RuleType.NEVERALLOW,
+    RuleType.AUDITALLOW,
+    RuleType.DONTAUDIT,
+]
+
+
+IOCTL_RULE_TYPES = [
+    RuleType.ALLOWXPERM,
+    RuleType.NEVERALLOWXPERM,
+    RuleType.DONTAUDITXPERM,
+]
+
+CLASS_SETS_RULE_TYPES = ALLOW_RULE_TYPES + IOCTL_RULE_TYPES
 
 def join_varargs(varargs: Tuple[str, ...]):
     s = ' '.join(varargs)
@@ -175,7 +208,7 @@ def format_rule(rule: Rule):
                 rule.parts[-1],
             )
         case RuleType.GENFSCON:
-            return 'genfscon {} {} u:object_r:{}:s0;'.format(
+            return 'genfscon {} {} u:object_r:{}:s0'.format(
                 rule.parts[0],
                 rule.parts[1],
                 rule.parts[2],
