@@ -99,61 +99,90 @@ LEFTOVER_RULES_NAME = 'leftover.te'
 ATTRIBUTE_RULES_NAME = 'attribute'
 
 
-def group_rules(mld: MultiLevelDict[Rule]):
-    grouped_rules: Dict[str, Set[Rule]] = {}
+def domain_type(rule: Rule):
+    domain = rule.parts[0]
+    if not isinstance(domain, str) and len(rule.parts) >= 2:
+        domain = rule.parts[1]
 
-    # TODO: better rule grouping
-    #
-    # TODO: Remove attribute rules?
-    # They're auto generated when declaring a type.
+    if not isinstance(domain, str):
+        return LEFTOVER_RULES_NAME
 
-    for rule in mld.walk():
-        # device types
-        if rule.rule_type == RuleType.TYPE.value and 'dev_type' in rule.varargs:
-            name = DEVICE_TYPE_RULES_NAME
-        # file types
-        elif rule.rule_type == RuleType.TYPE.value and (
-            'file_type' in rule.varargs or 'fs_type' in rule.varargs
-        ):
-            name = FILE_TYPE_RULES_NAME
-        # service types
-        elif (
-            rule.rule_type == RuleType.TYPE.value
-            and isinstance(rule.parts[0], str)
-            and rule.parts[0].endswith('_service')
-        ):
-            name = SERVICE_TYPE_RULES_NAME
-        # hwservice types
-        elif (
-            rule.rule_type == RuleType.TYPE.value
-            and isinstance(rule.parts[0], str)
-            and rule.parts[0].endswith('_hwservice')
-        ):
-            name = HWSERVICE_TYPE_RULES_NAME
-        # attributes
-        elif (
-            rule.rule_type == RuleType.ATTRIBUTE.value
-            or rule.rule_type == RuleType.EXPANDATTRIBUTE.value
-        ):
-            name = ATTRIBUTE_RULES_NAME
-        # property
-        elif isinstance(rule.parts[0], str) and rule.parts[0].endswith('_prop'):
-            name = PROPERTY_RULES_NAME
+    t = extract_domain_type(domain)
+    return f'{t}.te'
+
+
+def rule_simple_type_name(rule: Rule):
+    if rule.rule_type == RuleType.TYPE.value:
+        if 'dev_type' in rule.varargs:
+            return DEVICE_TYPE_RULES_NAME
+        elif 'file_type' in rule.varargs or 'fs_type' in rule.varargs:
+            return FILE_TYPE_RULES_NAME
         elif isinstance(rule.parts[0], str):
-            t = extract_domain_type(rule.parts[0])
-            name = f'{t}.te'
-        else:
-            name = LEFTOVER_RULES_NAME
+            if rule.parts[0].endswith('_prop'):
+                return PROPERTY_RULES_NAME
+            elif rule.parts[0].endswith('_hwservice'):
+                return HWSERVICE_TYPE_RULES_NAME
+            elif rule.parts[0].endswith('_service'):
+                return SERVICE_TYPE_RULES_NAME
+
+        return None
+    elif rule.rule_type in set(
+        [
+            RuleType.ATTRIBUTE.value,
+            RuleType.EXPANDATTRIBUTE.value,
+            'hal_attribute',
+        ]
+    ):
+        return ATTRIBUTE_RULES_NAME
+    elif isinstance(rule.parts[0], str):
+        if rule.parts[0].endswith('_prop'):
+            return PROPERTY_RULES_NAME
+
+    return None
+
+
+def group_rules(mld: MultiLevelDict[Rule]):
+    # Group rules based on main type
+    grouped_rules: Dict[str, Set[Rule]] = {}
+    for rule in mld.walk():
+        name = domain_type(rule)
 
         if name not in grouped_rules:
             grouped_rules[name] = set()
 
         grouped_rules[name].add(rule)
 
-    return grouped_rules
+    # Re-group simple rules into common files
+    regrouped_rules: Dict[str, Set[Rule]] = {}
+    for name, rules in grouped_rules.items():
+        # If all rules of this group are simple, re-group them
+        is_all_simple_type = True
+        simple_type_names: List[Optional[str]] = []
+        for rule in rules:
+            simple_type_name = rule_simple_type_name(rule)
+            simple_type_names.append(simple_type_name)
+
+            if simple_type_name is None:
+                is_all_simple_type = False
+
+        for new_name, rule in zip(simple_type_names, rules):
+            if is_all_simple_type:
+                assert new_name is not None
+                name = new_name
+
+            if name not in regrouped_rules:
+                regrouped_rules[name] = set()
+
+            regrouped_rules[name].add(rule)
+
+    return regrouped_rules
 
 
 def rules_sort_key(rule: Rule):
+    # Put type rules at the beginning
+    if rule.rule_type == RuleType.TYPE.value:
+        return (False, ['0'])
+
     compare_values = [str(h) for h in rule.hash_values]
     return (not rule.is_macro, compare_values)
 
