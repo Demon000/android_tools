@@ -190,8 +190,6 @@ def format_rule(rule: Rule):
                 rule.rule_type, rule.parts[0], varargs_str
             )
         case RuleType.TYPE_TRANSITION:
-            # TODO: can the varargs depend on args?
-
             assert len(rule.varargs) in [0, 1]
 
             if len(rule.varargs) == 1:

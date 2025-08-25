@@ -125,7 +125,8 @@ class SourceRule(Rule):
                 | RuleType.DONTAUDITXPERM.value
             ):
                 # TODO: ioctl rules are split at comments by the compiler
-                # merge them back
+                # and later merged as part of the final processing steps
+                # Try merging them ahead of time.
                 assert len(parts) == 6
                 assert isinstance(parts[1], str), line
                 assert isinstance(parts[2], str), line

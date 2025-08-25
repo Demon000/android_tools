@@ -86,27 +86,12 @@ def rule_arity(rule: Rule):
     return len(macro_rule_args)
 
 
-def macro_sort_key(macro: Tuple[str, List[Rule]]):
-    rules = macro[1]
-    arities = list(map(rule_arity, rules))
-    max_arity = max(arities, default=0)
-
-    return (-len(macro[1]), max_arity)
-
-
 def sort_macros(macros: List[Tuple[str, List[Rule]]]):
     # Inside the macro, prefer rules with higher arity to help
     # the arg matching algorithm
     for macro in macros:
         rules = macro[1]
         rules.sort(key=rule_arity, reverse=True)
-
-    # Sort by number of rules and arity, prefer macros with more rules and
-    # lower arity
-    # This is important for define_prop() wrappers that have the same number
-    # of rules as define_prop() but lower arity
-    # TODO: not needed for matching all macros and then rulling them out
-    # macros.sort(key=macro_sort_key)
 
 
 def decompile_cil(cil_paths: List[str]):
@@ -178,7 +163,6 @@ if __name__ == '__main__':
         required=True,
         help='Output directory for the decompiled selinux',
     )
-    # TODO: add seapp certificates base path
 
     args = parser.parse_args()
     assert args.macros
