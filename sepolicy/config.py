@@ -3,11 +3,13 @@
 
 # Variables extracted from system/sepolicy/build/soong/policy.go
 
-from typing import Dict
+from __future__ import annotations
+
+from typing import Dict, List, Optional, Tuple
 
 from conditional_type import ConditionalType
 from mld import MultiLevelDict
-from rule import Rule, RuleType
+from rule import Rule, RuleType, rule_part_or_varargs
 from utils import Color, color_print
 
 default_variables = {
@@ -39,26 +41,34 @@ default_variables = {
     'target_board_api_level': '202404',
 }
 
-default_variables_match_rules = {
+default_variables_match_rules: Dict[
+    str,
+    Tuple[List[Optional[rule_part_or_varargs]], str, str],
+] = {
+    # TODO: fix
     # public/file.te
     # type asanwrapper_exec, exec_type, file_type;
     # type rules are compiled into typeattributeset and then split by us into
     # typeattribute
     'target_with_asan': (
-        Rule(
+        [
             RuleType.TYPEATTRIBUTE.value,
-            ('asanwrapper_exec', 'exec_type'),
+            'asanwrapper_exec',
+            'exec_type',
             (),
-        ),
+        ],
         'true',
         'false',
     ),
+    # TODO: fix
     # public/domain.te
     # allow domain method_trace_data_file:dir create_dir_perms;
     'target_with_native_coverage': (
-        Rule(
+        [
             RuleType.ALLOW.value,
-            ('domain', 'method_trace_data_file', 'dir'),
+            'domain',
+            'method_trace_data_file',
+            'dir',
             # TODO: Try to extract the value of create_dir_perms automatically.
             # Currently it is not possible to extract these automatically because
             # the variables that we're trying to autodetect here need to be passed
@@ -82,63 +92,76 @@ default_variables_match_rules = {
                 'read',
                 'search',
             ),
-        ),
+        ],
         'true',
         'false',
     ),
+    # TODO: fix
     # public/domain.te
     # allow domain su:fd use;
     'target_build_variant': (
-        Rule(
+        [
             RuleType.ALLOW.value,
-            ('allow', 'domain', 'su', 'fd'),
+            'allow',
+            'domain',
+            'su',
+            'fd',
             ('use',),
-        ),
+        ],
         'userdebug',
         'user',
     ),
-    # public/domain.te
-    # allow domain vendor_file:dir { getattr search };
+    # public/te_macros
+    # hal_client_domain:
+    # allow $2 vendor_file:file { read open getattr execute map };
     'target_full_treble': (
-        Rule(
+        [
             RuleType.ALLOW.value,
-            ('domain', 'vendor_file', 'dir'),
-            ('getattr', 'search'),
-        ),
-        'true',
+            None,
+            'vendor_file',
+            'file',
+            (
+                'read',
+                'getattr',
+                'map',
+                'execute',
+                'open',
+            ),
+        ],
         'false',
+        'true',
     ),
+    # TODO: improve
     # public/property.te
-    # vendor_internal_prop(vendor_default_prop)
+    # vendor_internal_prop:
     # ->
     # type vendor_default_prop, property_type, vendor_property_type, vendor_internal_property_type;
     'target_compatible_property': (
-        Rule(
+        [
             RuleType.TYPEATTRIBUTE.value,
-            ('vendor_default_prop', 'vendor_internal_property_type'),
+            'vendor_default_prop',
+            'vendor_internal_property_type',
             (),
-        ),
+        ],
         'true',
         'false',
     ),
     # public/te_macros
-    # system_restricted_prop(build_prop)
+    # vendor_restricted_prop(build_prop)
     # ->
-    # neverallow { domain -coredomain } build_prop:property_service set;
+    # neverallow { coredomain -init } $1:property_service set;
     'target_treble_sysprop_neverallow': (
-        Rule(
+        [
             RuleType.NEVERALLOW.value,
-            (
-                ConditionalType(
-                    ['domain'],
-                    ['coredomain'],
-                    False,
-                ),
-                'build_prop',
-                'property_service',
+            ConditionalType(
+                ['coredomain'],
+                ['init'],
+                False,
             ),
-            ('set', ),
-        ),
+            None,
+            'property_service',
+            ('set',),
+        ],
         'true',
         'false',
     ),
@@ -149,10 +172,10 @@ def get_default_variables(mld: MultiLevelDict[Rule]):
     variables: Dict[str, str] = default_variables.copy()
 
     for variable_name, data in default_variables_match_rules.items():
-        rule, match_value, pass_value = data
+        match_keys, match_value, pass_value = data
 
         found = False
-        for _ in mld.match(rule.hash_values):
+        for _ in mld.match(match_keys):
             found = True
             break
 

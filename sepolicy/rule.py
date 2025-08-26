@@ -21,28 +21,6 @@ rule_part_or_varargs = Union[rule_part, Tuple[str, ...]]
 RULE_DYNAMIC_PARTS_INDEX = 1
 
 
-VERSION_SUFFIXES = set(
-    [
-        '_202404',
-        '_34_0',
-        '_33_0',
-        '_32_0',
-        '_31_0',
-        '_30_0',
-        '_29_0',
-    ]
-)
-
-
-# TODO: optimize
-def remove_type_suffix(t: str):
-    for suffix in VERSION_SUFFIXES:
-        if t.endswith(suffix):
-            return t[: -len(suffix)]
-
-    return t
-
-
 def is_type_generated(part: rule_part):
     if not isinstance(part, str):
         return False
@@ -146,6 +124,7 @@ IOCTL_RULE_TYPES = [
 ]
 
 CLASS_SETS_RULE_TYPES = ALLOW_RULE_TYPES + IOCTL_RULE_TYPES
+
 
 def join_varargs(varargs: Tuple[str, ...]):
     s = ' '.join(varargs)

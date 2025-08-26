@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 
 from conditional_type import ConditionalType, ConditionalTypeRedirect
 from rule import (
@@ -13,10 +13,19 @@ from rule import (
     is_type_generated,
     raw_part,
     raw_parts_list,
-    remove_type_suffix,
     unpack_line,
 )
 from utils import Color, color_print
+
+
+def remove_type_suffix(suffix: Optional[str], t: str):
+    if suffix is None:
+        return t
+
+    if t.endswith(suffix):
+        return t[: -len(suffix)]
+
+    return t
 
 
 def is_conditional_typeattr(part: raw_part):
@@ -28,7 +37,10 @@ def is_conditional_typeattr(part: raw_part):
     return part in ['and', 'not', 'all']
 
 
-def create_conditional_type(parts: raw_parts_list):
+def create_conditional_type(
+    version_suffix: Optional[str],
+    parts: raw_parts_list,
+):
     # ((and (...) ((not (...))))) -> (and (...) ((not (...))))
     # ((not (...))) -> (not (...))
 
@@ -85,7 +97,10 @@ def create_conditional_type(parts: raw_parts_list):
             color_print('Ignored conditional type: ', parts, color=Color.YELLOW)
             return None
 
-        new_types = map(remove_type_suffix, new_group)
+        new_types = map(
+            lambda t: remove_type_suffix(version_suffix, t),
+            new_group,
+        )
         if group[0] == 'and':
             positive.extend(new_types)
         elif group[0] == 'not':
@@ -193,6 +208,7 @@ class CilRule(Rule):
         conditional_types_map: Dict[str, ConditionalType],
         missing_generated_types: Set[str],
         genfs_rules: List[Rule],
+        version: Optional[str],
     ) -> List[Rule]:
         def type_redirect(t: str):
             return ConditionalTypeRedirect(
@@ -200,6 +216,11 @@ class CilRule(Rule):
                 conditional_types_map,
                 missing_generated_types,
             )
+
+        version_suffix = None
+        if version is not None:
+            version = version.replace('.', '_')
+            version_suffix = f'_{version}'
 
         # Skip comments and empty lines
         if not is_valid_cil_line(line):
@@ -242,11 +263,11 @@ class CilRule(Rule):
                     assert isinstance(part, str)
                     varargs.append(part)
 
-                src = remove_type_suffix(parts[1])
+                src = remove_type_suffix(version_suffix, parts[1])
                 if is_type_generated(src):
                     src = type_redirect(src)
 
-                dst = remove_type_suffix(parts[2])
+                dst = remove_type_suffix(version_suffix, parts[2])
                 if is_type_generated(dst):
                     dst = type_redirect(dst)
 
@@ -275,11 +296,11 @@ class CilRule(Rule):
                 for ioctl in unpack_ioctls(parts[3][2]):
                     varargs.append(ioctl)
 
-                src = remove_type_suffix(parts[1])
+                src = remove_type_suffix(version_suffix, parts[1])
                 if is_type_generated(src):
                     src = type_redirect(src)
 
-                dst = remove_type_suffix(parts[2])
+                dst = remove_type_suffix(version_suffix, parts[2])
                 if is_type_generated(dst):
                     dst = type_redirect(dst)
 
@@ -307,27 +328,30 @@ class CilRule(Rule):
                 if is_type_generated(parts[1]):
                     return []
 
-                t = remove_type_suffix(parts[1])
+                t = remove_type_suffix(version_suffix, parts[1])
 
                 # Rename typeattribute to attribute to match source
                 # typeattribute rules in source expand to typeattributeset,
                 # while attribute rules expand to typeattribute
                 rule = Rule(
                     RuleType.ATTRIBUTE.value,
-                    (t, ),
+                    (t,),
                     (),
                 )
                 return [rule]
             case CilRuleType.TYPEATTRIBUTESET.value:
                 assert isinstance(parts[1], str), line
-                v = remove_type_suffix(parts[1])
+                v = remove_type_suffix(version_suffix, parts[1])
 
                 # Process conditional types and add them to a map to be replaced
                 # into the other rules later
                 if is_conditional_typeattr(parts[2]):
                     assert isinstance(parts[2], list)
 
-                    conditional_type = create_conditional_type(parts[2])
+                    conditional_type = create_conditional_type(
+                        version_suffix,
+                        parts[2],
+                    )
                     if conditional_type is None:
                         return []
 
@@ -340,7 +364,7 @@ class CilRule(Rule):
 
                 for t in parts[2]:
                     assert isinstance(t, str)
-                    t = remove_type_suffix(t)
+                    t = remove_type_suffix(version_suffix, t)
 
                     rule = Rule(
                         RuleType.TYPEATTRIBUTE.value,
@@ -384,11 +408,11 @@ class CilRule(Rule):
                 else:
                     varargs = []
 
-                src = remove_type_suffix(parts[1])
+                src = remove_type_suffix(version_suffix, parts[1])
                 if is_type_generated(src):
                     src = type_redirect(src)
 
-                dst = remove_type_suffix(parts[2])
+                dst = remove_type_suffix(version_suffix, parts[2])
                 if is_type_generated(dst):
                     src = type_redirect(dst)
 

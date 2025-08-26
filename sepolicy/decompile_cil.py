@@ -94,14 +94,15 @@ def sort_macros(macros: List[Tuple[str, List[Rule]]]):
         rules.sort(key=rule_arity, reverse=True)
 
 
-def decompile_cil(cil_paths: List[str]):
-    cil_datas = [Path(p).read_text() for p in cil_paths]
-    cils_data = '\n'.join(cil_datas)
+def decompile_cil(
+    cil_path: str,
+    conditional_types_map: Dict[str, ConditionalType],
+    missing_generated_types: Set[str],
+    version: Optional[str],
+):
+    cil_data = Path(cil_path).read_text()
+    cil_lines = cil_data.splitlines()
 
-    cil_lines = cils_data.splitlines()
-
-    conditional_types_map: Dict[str, ConditionalType] = {}
-    missing_generated_types: Set[str] = set()
     genfs_rules: List[Rule] = []
 
     # Convert lines to rules
@@ -110,15 +111,26 @@ def decompile_cil(cil_paths: List[str]):
         conditional_types_map=conditional_types_map,
         missing_generated_types=missing_generated_types,
         genfs_rules=genfs_rules,
+        version=version,
     )
     rules = list(chain.from_iterable(map(fn, cil_lines)))
 
     return rules, genfs_rules
 
 
-def get_cil_paths(selinux_dir: str):
-    selinux_path = Path(selinux_dir)
-    return [str(p) for p in selinux_path.glob('*.cil')]
+def get_selinux_dir_policy(selinux_dir: str):
+    platform_policy_path = Path(selinux_dir, 'plat_pub_versioned.cil')
+    assert platform_policy_path.exists()
+
+    policy_path = Path(selinux_dir, 'vendor_sepolicy.cil')
+    assert policy_path.exists()
+
+    policy_version_path = Path(selinux_dir, 'plat_sepolicy_vers.txt')
+    assert policy_version_path.exists()
+
+    policy_version = policy_version_path.read_text().strip()
+
+    return str(platform_policy_path), str(policy_path), policy_version
 
 
 if __name__ == '__main__':
@@ -126,15 +138,25 @@ if __name__ == '__main__':
         prog='decompile_cil.py',
         description='Decompile CIL files',
     )
-    parser.add_argument('cil', nargs='*')
+    parser.add_argument(
+        '--policy-version', action='store', help='Version string (eg: 31.0)'
+    )
+    parser.add_argument(
+        '--platform-policy',
+        action='store',
+        help='Path to platform policy (eg: vendor/etc/selinux/plat_pub_versioned.cil)',
+    )
+    parser.add_argument(
+        '--policy',
+        action='store',
+        help='Path to policy (eg: vendor/etc/selinux/vendor_sepolicy.cil)',
+    )
     parser.add_argument(
         '-s',
         '--selinux',
         action='store',
-        help='Path to selinux directory',
+        help='Path to selinux directory (eg: vendor/etc/selinux)',
     )
-    # TODO: determine sepolicy version automatically and find macros dir
-    # based on android root
     parser.add_argument(
         '-m',
         '--macros',
@@ -170,13 +192,36 @@ if __name__ == '__main__':
     output_dir: str = args.output
     kernel_dir: str = args.kernel
     selinux_dir: Optional[str] = args.selinux
-    cil_paths: List[str] = args.cil
 
-    if not cil_paths:
-        assert selinux_dir is not None
-        cil_paths = get_cil_paths(selinux_dir)
+    if selinux_dir is None:
+        assert args.platform_policy is not None
+        platform_policy: str = args.platform_policy
+        assert args.policy is not None
+        policy: str = args.policy
 
-    rules, genfs_rules = decompile_cil(cil_paths)
+        version: Optional[str] = args.policy_version
+    else:
+        platform_policy, policy, version = get_selinux_dir_policy(
+            selinux_dir
+        )
+
+    conditional_types_map: Dict[str, ConditionalType] = {}
+    missing_generated_types: Set[str] = set()
+
+    # Only load generated types from platform policy
+    _, _ = decompile_cil(
+        platform_policy,
+        conditional_types_map,
+        set(),
+        version,
+    )
+
+    rules, genfs_rules = decompile_cil(
+        policy,
+        conditional_types_map,
+        missing_generated_types,
+        version,
+    )
 
     mld: MultiLevelDict[Rule] = MultiLevelDict()
     for rule in rules:
